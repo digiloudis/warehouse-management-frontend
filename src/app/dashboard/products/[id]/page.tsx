@@ -26,10 +26,12 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
 	useEffect(() => {
 		(async () => {
-			const result = await getProductDetails(id);
+			const result = await getProductDetails(id); // Ή όπως ονομάζεται το action σου
 			if (result.success) {
 				setProduct(result.product);
-				setLocations(result.locations);
+
+				// 🌟 Πρόσθεσε το || [] εδώ για να διώξεις το σφάλμα:
+				setLocations(result.locations || []);
 			}
 			setLoading(false);
 		})();
