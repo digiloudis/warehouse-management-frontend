@@ -9,7 +9,7 @@ import { useToast } from "@/context/ToastContext";
 // components
 import { Button, Flex, Text, TextField, Dialog, Code } from "@radix-ui/themes";
 import { Pencil1Icon, ArchiveIcon, PlusIcon } from "@radix-ui/react-icons";
-import Breadcrumbs from "@/components/Breadcrumbs";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 // actions
 import { getRole } from "../../actions";
@@ -18,6 +18,7 @@ import { archiveProduct, getProduct } from "../actions";
 // types
 import type { UserRole } from "../../actions";
 import type { Product } from "../actions";
+import { Header } from "@/components/Header";
 
 type InventoryItem = {
 	inventoryId: number;
@@ -143,84 +144,127 @@ export default function Page({ params }: PageProps) {
 			/>
 
 			{/* header */}
-			<Flex width="100%" direction={{ initial: "column", sm: "row" }} align={{ initial: "start", sm: "center" }} justify="between" wrap="wrap" gap="4">
-				<Flex direction="column" gap="1" className="flex-1">
-					<Text size="6" weight="bold" className="select-none">
-						{product.name}
-					</Text>
-					<Text size="3" className="select-none text-[var(--gray-10)]">
-						{product.barcode}
-					</Text>
+			<Header
+				title={product.name}
+				titleCopy
+				description={product.barcode}
+				descriptionCopy
+				buttons={[
+					{
+						isShown: isAdmin || isManager,
+						button: (
+							<Flex gap="2" wrap="wrap">
+								<Button
+									variant="soft"
+									color="gray"
+									size="2"
+									className="!cursor-pointer"
+									onClick={() =>
+										router.push(
+											`/dashboard/products/edit?id=${product.id}&name=${encodeURIComponent(product.name)}&barcode=${encodeURIComponent(product.barcode)}&price=${product.price}`,
+										)
+									}
+								>
+									<Pencil1Icon width="16" height="16" />
+									Edit
+								</Button>
+
+								<ArchiveProductDialog
+									isOpen={isArchiveDialogOpen}
+									onOpenChange={setIsArchiveDialogOpen}
+									confirmationValue={archiveConfirmation}
+									onConfirmationChange={setArchiveConfirmation}
+									isLoading={isActionLoading}
+									productName={product?.name}
+									productId={product?.id}
+									onArchive={handleArchive}
+								/>
+							</Flex>
+						),
+					},
+				]}
+			/>
+		</>
+	);
+}
+
+// local components
+interface ArchiveProductDialogProps {
+	isOpen: boolean;
+	onOpenChange: (open: boolean) => void;
+	confirmationValue: string;
+	onConfirmationChange: (value: string) => void;
+	isLoading: boolean;
+	productName?: string;
+	productId?: number;
+	onArchive: () => void;
+}
+
+function ArchiveProductDialog({
+	isOpen,
+	onOpenChange,
+	confirmationValue,
+	onConfirmationChange,
+	isLoading,
+	productName,
+	productId,
+	onArchive,
+}: ArchiveProductDialogProps) {
+	return (
+		<Dialog.Root
+			open={isOpen}
+			onOpenChange={(open) => {
+				onOpenChange(open);
+				if (!open) onConfirmationChange("");
+			}}
+		>
+			<Dialog.Trigger>
+				<Button color="red" size="2" className="!cursor-pointer" disabled={!productId}>
+					<ArchiveIcon width="16" height="16" />
+					Archive
+				</Button>
+			</Dialog.Trigger>
+
+			<Dialog.Content size="2" maxWidth="400px">
+				<Dialog.Title className="select-none">Archive product</Dialog.Title>
+				<Dialog.Description size="2" mb="2" className="select-none">
+					This action will archive <strong>{productName}</strong>. To confirm, please type{" "}
+					<Code color="red" weight="bold">
+						archive
+					</Code>{" "}
+					below.
+				</Dialog.Description>
+
+				<Flex direction="column" gap="3">
+					<label>
+						<TextField.Root
+							placeholder='Type "archive" to confirm'
+							value={confirmationValue}
+							onChange={(e) => onConfirmationChange(e.target.value)}
+							disabled={isLoading}
+							autoComplete="off"
+						/>
+					</label>
 				</Flex>
 
-				{/* actions */}
-				{(isAdmin || isManager) && (
-					<Flex gap="2" wrap="wrap">
-						{/* edit button & dialog */}
-						<Button variant="soft" color="gray" size="2" className="!cursor-pointer" onClick={() => {}}>
-							<Pencil1Icon width="16" height="16" />
-							Edit
+				<Flex justify="end" gap="2" mt="4">
+					<Dialog.Close>
+						<Button variant="soft" color="gray" className="!cursor-pointer" disabled={isLoading}>
+							Cancel
 						</Button>
-
-						{/* archive button & dialog */}
-						<Dialog.Root
-							open={isArchiveDialogOpen}
-							onOpenChange={(open) => {
-								setIsArchiveDialogOpen(open);
-								if (!open) setArchiveConfirmation("");
-							}}
-						>
-							<Dialog.Trigger>
-								<Button color="red" size="2" className="!cursor-pointer" disabled={!product?.id}>
-									<ArchiveIcon width="16" height="16" />
-									Archive
-								</Button>
-							</Dialog.Trigger>
-
-							<Dialog.Content size="2" maxWidth="400px">
-								<Dialog.Title className="select-none">Archive product</Dialog.Title>
-								<Dialog.Description size="2" mb="2" className="select-none">
-									This action will archive <strong>{product?.name}</strong>. To confirm, please type{" "}
-									<Code color="red" weight="bold">
-										archive
-									</Code>{" "}
-									below.
-								</Dialog.Description>
-
-								<Flex direction="column" gap="3">
-									<label>
-										<TextField.Root
-											placeholder='Type "archive" to confirm'
-											value={archiveConfirmation}
-											onChange={(e) => setArchiveConfirmation(e.target.value)}
-											disabled={isActionLoading}
-											autoComplete="off"
-										/>
-									</label>
-								</Flex>
-
-								<Flex justify="end" gap="2" mt="4">
-									<Dialog.Close>
-										<Button variant="soft" color="gray" className="!cursor-pointer" disabled={isActionLoading}>
-											Cancel
-										</Button>
-									</Dialog.Close>
-									<Button
-										color="red"
-										className="!cursor-pointer"
-										disabled={archiveConfirmation.toLowerCase() !== "archive" || isActionLoading}
-										loading={isActionLoading}
-										onClick={handleArchive}
-									>
-										<ArchiveIcon width="12" height="12" />
-										Archive
-									</Button>
-								</Flex>
-							</Dialog.Content>
-						</Dialog.Root>
-					</Flex>
-				)}
-			</Flex>
-		</>
+					</Dialog.Close>
+					<Button
+						color="red"
+						className="!cursor-pointer"
+						disabled={confirmationValue.toLowerCase() !== "archive" || isLoading}
+						loading={isLoading}
+						onClick={onArchive}
+					>
+						<ArchiveIcon width="12" height="12" />
+						Archive
+					</Button>
+				</Flex>
+			</Dialog.Content>
+		</Dialog.Root>
 	);
 }

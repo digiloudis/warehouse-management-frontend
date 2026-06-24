@@ -49,4 +49,4 @@ const Breadcrumbs = ({ items }: BreadcrumbsProps) => {
 	);
 };
 
-export default Breadcrumbs;
+export { Breadcrumbs };

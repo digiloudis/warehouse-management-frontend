@@ -10,7 +10,7 @@ import { useToast } from "@/context/ToastContext";
 import { Badge, Button, Card, Flex, IconButton, Link, RadioGroup, Strong, Text, TextField } from "@radix-ui/themes";
 import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, MinusIcon, PlusIcon } from "@radix-ui/react-icons";
 
-import Breadcrumbs from "@/components/Breadcrumbs";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 // actions
 import { createTransaction } from "../actions";

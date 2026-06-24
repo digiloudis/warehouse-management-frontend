@@ -12,7 +12,7 @@ type PaginationProps = {
 	onPageChange: (newPage: number | ((prev: number) => number)) => void;
 };
 
-export default function Pagination({ page, pages, onPageChange }: PaginationProps) {
+const Pagination = ({ page, pages, onPageChange }: PaginationProps) => {
 	if (pages <= 1) return null;
 
 	return (
@@ -47,4 +47,6 @@ export default function Pagination({ page, pages, onPageChange }: PaginationProp
 			</IconButton>
 		</Flex>
 	);
-}
+};
+
+export { Pagination };

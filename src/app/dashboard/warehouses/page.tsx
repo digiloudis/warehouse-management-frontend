@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // context
@@ -10,11 +10,11 @@ import { useToast } from "@/context/ToastContext";
 import { Button, Flex, Text } from "@radix-ui/themes";
 import { HomeIcon, Link2Icon, PlusIcon } from "@radix-ui/react-icons";
 
-import Breadcrumbs from "@/components/Breadcrumbs";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Header } from "@/components/Header";
 import { Searchbar } from "@/components/Searchbar";
-import ListCard from "@/components/ListCard";
-import Pagination from "@/components/Pagination";
+import { ListCard } from "@/components/ListCard";
+import { Pagination } from "@/components/Pagination";
 
 // actions
 import { getRole } from "../actions";
@@ -50,6 +50,11 @@ export default function Page() {
 	const isAdmin: boolean = role === 1;
 
 	// get role & warehouses
+	const toastRef = useRef(toast);
+	useEffect(() => {
+		toastRef.current = toast;
+	}, [toast]);
+
 	useEffect(() => {
 		let isMounted: boolean = true;
 		setIsLoading(true);
@@ -63,7 +68,7 @@ export default function Page() {
 				if (warehousesResponse && warehousesResponse.success) {
 					setWarehouses(warehousesResponse.data ?? []);
 				} else {
-					toast.show("error", warehousesResponse?.message || "Failed to fetch warehouses.");
+					toastRef.current.show("error", warehousesResponse?.message || "Failed to fetch warehouses.");
 					setWarehouses([]);
 				}
 			})
@@ -71,7 +76,7 @@ export default function Page() {
 				if (!isMounted) return;
 
 				console.error(error);
-				toast.show("error", "Something went wrong while loading data.");
+				toastRef.current.show("error", "Something went wrong while loading data.");
 			})
 			.finally(() => {
 				if (isMounted) setIsLoading(false);
@@ -80,7 +85,7 @@ export default function Page() {
 		return () => {
 			isMounted = false;
 		};
-	}, [toast]);
+	}, []);
 
 	// warehouse search
 	const searchedWarehouses: Array<Warehouse> = warehouses.filter((warehouse: Warehouse) => {

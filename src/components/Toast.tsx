@@ -81,4 +81,4 @@ const Toast = ({ message, type = "warning", duration = 5000, onDismiss }: ToastM
 };
 
 Toast.displayName = "Toast";
-export default Toast;
+export { Toast };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // context
@@ -8,13 +8,13 @@ import { useToast } from "@/context/ToastContext";
 
 // components
 import { Button, Flex, Text } from "@radix-ui/themes";
-import { ArrowDownIcon, ArrowUpIcon, HomeIcon, Link2Icon, MinusIcon, PlusIcon } from "@radix-ui/react-icons";
+import { ArrowDownIcon, ArrowUpIcon, MinusIcon, PlusIcon } from "@radix-ui/react-icons";
 
-import Breadcrumbs from "@/components/Breadcrumbs";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Header } from "@/components/Header";
 import { Searchbar } from "@/components/Searchbar";
-import ListCard from "@/components/ListCard";
-import Pagination from "@/components/Pagination";
+import { ListCard } from "@/components/ListCard";
+import { Pagination } from "@/components/Pagination";
 
 // actions
 import { getTransactions } from "./actions";
@@ -53,11 +53,16 @@ export default function Page() {
 
 	const [page, setPage] = useState<number>(1);
 	const [search, setSearch] = useState<string>("");
-	const [sortMode, setSortMode] = useState<string>("date-ascending");
+	const [sortMode, setSortMode] = useState<string>("date-descending");
 
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 
 	// get transactions, products, & warehouses
+	const toastRef = useRef(toast);
+	useEffect(() => {
+		toastRef.current = toast;
+	}, [toast]);
+
 	useEffect(() => {
 		let isMounted: boolean = true;
 		setIsLoading(true);
@@ -69,21 +74,21 @@ export default function Page() {
 				if (transactionsResponse && transactionsResponse.success) {
 					setTransactions(transactionsResponse.data ?? []);
 				} else {
-					toast.show("error", transactionsResponse?.message || "Failed to fetch transactions.");
+					toastRef.current.show("error", transactionsResponse?.message || "Failed to fetch transactions.");
 					setTransactions([]);
 				}
 
 				if (productsResponse && productsResponse.success) {
 					setProducts(productsResponse.data ?? []);
 				} else {
-					toast.show("error", productsResponse?.message || "Failed to fetch products.");
+					toastRef.current.show("error", productsResponse?.message || "Failed to fetch products.");
 					setProducts([]);
 				}
 
 				if (warehousesResponse && warehousesResponse.success) {
 					setWarehouses(warehousesResponse.data ?? []);
 				} else {
-					toast.show("error", warehousesResponse?.message || "Failed to fetch warehouses.");
+					toastRef.current.show("error", warehousesResponse?.message || "Failed to fetch warehouses.");
 					setWarehouses([]);
 				}
 			})
@@ -91,7 +96,7 @@ export default function Page() {
 				if (!isMounted) return;
 
 				console.error(error);
-				toast.show("error", "Something went wrong while loading data.");
+				toastRef.current.show("error", "Something went wrong while loading data.");
 			})
 			.finally(() => {
 				if (isMounted) setIsLoading(false);
@@ -100,7 +105,7 @@ export default function Page() {
 		return () => {
 			isMounted = false;
 		};
-	}, [toast]);
+	}, []);
 
 	// transaction search
 	const searchedTransactions: Array<Transaction> = transactions.filter((transaction: Transaction) => {
@@ -147,9 +152,9 @@ export default function Page() {
 			case "warehouse-name-descending":
 				return names.warehouses.b.localeCompare(names.warehouses.a || "");
 			case "type-inbound":
-				return transactionA.type.toLowerCase() === "in" ? -1 : 1;
+				return transactionA.type.localeCompare(transactionB.type);
 			case "type-outbound":
-				return transactionA.type.toLowerCase() === "out" ? -1 : 1;
+				return transactionB.type.localeCompare(transactionA.type);
 			default:
 				return 0;
 		}
@@ -197,7 +202,7 @@ export default function Page() {
 			/>
 
 			{/* search & sort */}
-			{!isLoading && warehouses.length > 0 && (
+			{!isLoading && transactions.length > 0 && (
 				<Searchbar
 					search={search}
 					searchPlaceholder="Search transaction.."
@@ -236,6 +241,7 @@ export default function Page() {
 							const warehouse: Warehouse | undefined = warehouses.find((warehouse: Warehouse) => warehouse.id === transaction.warehouseId);
 
 							const isInbound: boolean = transaction.type === "in";
+							const formattedQuantity = `${isInbound ? "+" : "-"}${formatNumber(transaction.quantity)}`;
 
 							return (
 								<ListCard
@@ -246,8 +252,9 @@ export default function Page() {
 									titleLink={product ? `/dashboard/products/${product.id}` : undefined}
 									description={warehouse?.name ?? "Unknown warehouse"}
 									descriptionLink={warehouse ? `/dashboard/warehouses/${warehouse.id}` : undefined}
-									badge={formatNumber(transaction.quantity)}
+									badge={formattedQuantity}
 									badgeColor={isInbound ? "green" : "red"}
+									badgeTooltip={transaction.quantity > 999 ? transaction.quantity.toLocaleString() : undefined}
 									date={transaction.date}
 								/>
 							);

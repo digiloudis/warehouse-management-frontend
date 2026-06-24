@@ -10,11 +10,11 @@ import { useToast } from "@/context/ToastContext";
 import { Button, Flex, Text, TextField } from "@radix-ui/themes";
 import { Cross1Icon, PlusIcon } from "@radix-ui/react-icons";
 
-import Breadcrumbs from "@/components/Breadcrumbs";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { Header } from "@/components/Header";
 
 // actions
 import { createProduct } from "../actions";
-import { Header } from "@/components/Header";
 
 export default function Page() {
 	return (
@@ -29,7 +29,7 @@ export default function Page() {
 			/>
 
 			{/* header */}
-			<Header title="Create product" description="Add a new item to your inventory. Fill in the general information, pricing, and stock details." />
+			<Header title="Create product" description="Fill in the name, barcode, and price details to add this product to your catalog." />
 
 			{/* form */}
 			<React.Suspense>
@@ -50,31 +50,26 @@ function Form() {
 	const [price, setPrice] = useState<string>("");
 
 	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [errors, setErrors] = useState<{ name?: string; barcode?: string; price?: string }>({});
 
 	useEffect(() => {
-		const paramName = params.get("name");
-		const paramBarcode = params.get("barcode");
-		const paramPrice = params.get("price");
-
-		if (paramName) setName(paramName);
-		if (paramBarcode) setBarcode(paramBarcode);
-		if (paramPrice) setPrice(paramPrice);
+		setName(params.get("name") ?? "");
+		setBarcode(params.get("barcode") ?? "");
+		setPrice(params.get("price") ?? "");
 	}, [params]);
 
 	const handleCreate = async (event: React.FormEvent) => {
 		event.preventDefault();
 
-		if (!name.trim() || !barcode.trim() || !price.trim()) {
-			toast.show("error", "Please fill in all fields.");
-			return;
-		}
+		const newErrors: typeof errors = {};
+		if (!name.trim()) newErrors.name = "Name is required.";
+		if (!barcode.trim()) newErrors.barcode = "Barcode is required.";
+		if (!price.trim()) newErrors.price = "Price is required.";
 
-		// 💡 Float precision fix (στρογγυλοποίηση)
+		if (Object.keys(newErrors).length > 0) return void setErrors(newErrors);
+
 		const parsedPrice = Math.round(parseFloat(price) * 100) / 100;
-		if (isNaN(parsedPrice) || parsedPrice <= 0) {
-			toast.show("error", "Please enter a valid price.");
-			return;
-		}
+		if (isNaN(parsedPrice) || parsedPrice <= 0) return void setErrors((previous) => ({ ...previous, price: "Please enter a valid price." }));
 
 		try {
 			setIsLoading(true);
@@ -83,12 +78,11 @@ function Form() {
 			if (response.success) {
 				toast.show("success", "Product created successfully.");
 				router.refresh();
-				router.push("/dashboard/products");
-			} else {
-				toast.show("error", response.message || "Failed to create product.");
-			}
+
+				setTimeout(() => router.replace("/dashboard/products"), 100);
+			} else toast.show("error", response.message || "Failed to create product.");
 		} catch (error) {
-			console.error("Form submission error:", error);
+			console.error(error);
 			toast.show("error", "An unexpected error occurred.");
 		} finally {
 			setIsLoading(false);
@@ -96,76 +90,98 @@ function Form() {
 	};
 
 	return (
-		<Flex asChild width="100%" direction="column" align="stretch" gap="4">
-			<form onSubmit={handleCreate}>
-				<Flex direction="column" gap="2" width="100%">
+		<Flex asChild width="100%" direction="column" gap="4">
+			<form noValidate onSubmit={handleCreate}>
+				{/* fields */}
+				<Flex direction="column" gap="2">
 					{/* name field */}
-					<Flex direction="column" align="stretch" gap="1" width="100%">
-						<Text as="label" htmlFor="name" size="2" weight="bold" className="select-none text-[var(--gray-11)]">
-							Name
+					<Flex width="100%" direction="column" gap="1" className="select-none">
+						<Text as="label" htmlFor="name" size="2" weight="bold">
+							Name <Text color="red">*</Text>
 						</Text>
 						<TextField.Root
-							autoFocus // 💡 Καθαρό autofocus στο mount
-							required
-							placeholder="Product name"
-							name="name"
+							autoFocus
+							variant={errors.name ? "soft" : undefined}
 							id="name"
+							name="name"
 							type="text"
-							autoCapitalize="false"
-							autoCorrect="false"
-							spellCheck="false"
+							placeholder="e.g. Wireless Mouse"
 							disabled={isLoading}
 							value={name}
-							onChange={(event) => setName(event.target.value)}
+							color={errors.name ? "red" : undefined}
+							onChange={(event) => {
+								setName(event.target.value);
+								if (errors.name) setErrors((previous) => ({ ...previous, name: undefined }));
+							}}
 						/>
+						{errors.name && (
+							<Text size="1" color="red" weight="medium">
+								{errors.name}
+							</Text>
+						)}
 					</Flex>
 
 					{/* barcode field */}
-					<Flex direction="column" align="stretch" gap="1" width="100%">
-						<Text as="label" htmlFor="barcode" size="2" weight="bold" className="select-none text-[var(--gray-11)]">
-							Barcode
+					<Flex width="100%" direction="column" gap="1" className="select-none">
+						<Text as="label" htmlFor="barcode" size="2" weight="bold">
+							Barcode <Text color="red">*</Text>
 						</Text>
 						<TextField.Root
-							required
-							placeholder="BAR-0001"
-							name="barcode"
+							variant={errors.barcode ? "soft" : undefined}
 							id="barcode"
+							name="barcode"
 							type="text"
-							autoCapitalize="false"
-							autoCorrect="false"
-							spellCheck="false"
+							placeholder="e.g. 5201234567890"
 							disabled={isLoading}
 							value={barcode}
-							onChange={(event) => setBarcode(event.target.value)}
+							color={errors.barcode ? "red" : undefined}
+							onChange={(event) => {
+								setBarcode(event.target.value);
+								if (errors.barcode) setErrors((previous) => ({ ...previous, barcode: undefined }));
+							}}
 						/>
+						{errors.barcode && (
+							<Text size="1" color="red" weight="medium">
+								{errors.barcode}
+							</Text>
+						)}
 					</Flex>
 
 					{/* price field */}
-					<Flex direction="column" align="stretch" gap="1" width="100%">
-						<Text as="label" htmlFor="price" size="2" weight="bold" className="select-none text-[var(--gray-11)]">
-							Price
+					<Flex width="100%" direction="column" gap="1" className="select-none">
+						<Text as="label" htmlFor="price" size="2" weight="bold">
+							Price <Text color="red">*</Text>
 						</Text>
 						<TextField.Root
-							required
-							name="price"
+							variant={errors.price ? "soft" : undefined}
 							id="price"
+							name="price"
 							type="number"
-							autoCapitalize="false"
-							autoCorrect="false"
-							spellCheck="false"
 							step="0.01"
 							min="0.01"
+							placeholder="0.00"
 							disabled={isLoading}
 							value={price}
-							onChange={(event) => setPrice(event.target.value)}
+							color={errors.price ? "red" : undefined}
+							onChange={(event) => {
+								setPrice(event.target.value);
+								if (errors.price) setErrors((previous) => ({ ...previous, price: undefined }));
+							}}
 						>
-							<TextField.Slot>&euro;</TextField.Slot>
+							<TextField.Slot side="right">
+								<Text>€</Text>
+							</TextField.Slot>
 						</TextField.Root>
+						{errors.price && (
+							<Text size="1" color="red" weight="medium">
+								{errors.price}
+							</Text>
+						)}
 					</Flex>
 				</Flex>
 
 				{/* buttons */}
-				<Flex width="100%" justify="end" gap="2" mt="4">
+				<Flex width="100%" justify="end" gap="2">
 					<Button
 						variant="soft"
 						size="2"

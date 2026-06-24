@@ -44,14 +44,14 @@ async function getTransactions(): Promise<ActionResponse<Array<Transaction>>> {
 
 async function createTransaction(transactions: Array<Transaction>): Promise<ActionResponse<void>> {
 	try {
-		const requests = transactions.map((tx) =>
-			request(`/transactions/${tx.type}`, {
+		const requests = transactions.map((transaction) =>
+			request(`/transactions/${transaction.type}`, {
 				method: "POST",
 				protected: true,
 				body: {
-					warehouseId: tx.warehouseId,
-					productId: tx.productId,
-					quantity: tx.quantity,
+					warehouseId: transaction.warehouseId,
+					productId: transaction.productId,
+					quantity: transaction.quantity,
 				},
 			}),
 		);

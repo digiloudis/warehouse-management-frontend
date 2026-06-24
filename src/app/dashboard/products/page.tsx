@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // context
@@ -8,13 +8,13 @@ import { useToast } from "@/context/ToastContext";
 
 // components
 import { Button, Flex, Text } from "@radix-ui/themes";
-import { ArchiveIcon, CopyIcon, CubeIcon, Link2Icon, PlusIcon } from "@radix-ui/react-icons";
+import { CopyIcon, CubeIcon, Link2Icon, PlusIcon } from "@radix-ui/react-icons";
 
-import Breadcrumbs from "@/components/Breadcrumbs";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Header } from "@/components/Header";
 import { Searchbar } from "@/components/Searchbar";
-import ListCard from "@/components/ListCard";
-import Pagination from "@/components/Pagination";
+import { ListCard } from "@/components/ListCard";
+import { Pagination } from "@/components/Pagination";
 
 // actions
 import { getRole } from "../actions";
@@ -51,6 +51,11 @@ export default function Page() {
 	const isManager: boolean = role === 2;
 
 	// get role & products
+	const toastRef = useRef(toast);
+	useEffect(() => {
+		toastRef.current = toast;
+	}, [toast]);
+
 	useEffect(() => {
 		let isMounted: boolean = true;
 		setIsLoading(true);
@@ -64,7 +69,7 @@ export default function Page() {
 				if (productsResponse && productsResponse.success) {
 					setProducts(productsResponse.data ?? []);
 				} else {
-					toast.show("error", productsResponse?.message || "Failed to fetch products.");
+					toastRef.current.show("error", productsResponse?.message || "Failed to fetch products.");
 					setProducts([]);
 				}
 			})
@@ -72,7 +77,7 @@ export default function Page() {
 				if (!isMounted) return;
 
 				console.error(error);
-				toast.show("error", "Something went wrong while loading data.");
+				toastRef.current.show("error", "Something went wrong while loading data.");
 			})
 			.finally(() => {
 				if (isMounted) setIsLoading(false);
@@ -81,7 +86,7 @@ export default function Page() {
 		return () => {
 			isMounted = false;
 		};
-	}, [toast]);
+	}, []);
 
 	// product search
 	const searchedProducts: Array<Product> = products.filter((product: Product) => {
@@ -213,19 +218,10 @@ export default function Page() {
 										icon: <Link2Icon width="16" height="16" />,
 										onClick: () => {
 											if (typeof window !== "undefined") {
-												navigator.clipboard.writeText(`${window.location.origin}/dashboard/products/${product.id}`);
-												toast.show("success", "Link copied.");
+												const url = `${window.location.origin}/dashboard/products/${product.id}`;
+												navigator.clipboard.writeText(url);
+												toast.show("success", "Link copied to clipboard.");
 											}
-										},
-									},
-									{ type: "separator" },
-									{
-										type: "item",
-										label: "Archive",
-										icon: <ArchiveIcon width="16" height="16" />,
-										color: "red",
-										onClick: () => {
-											console.log("Archiving product:", product.id);
 										},
 									},
 								]}

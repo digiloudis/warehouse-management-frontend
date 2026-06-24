@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 // components
 import { Flex, Spinner, Text } from "@radix-ui/themes";
 
-import Body from "@/components/Body";
+import { Body } from "@/components/Body";
 
 // actions
 import { wakeup } from "@/app/actions";

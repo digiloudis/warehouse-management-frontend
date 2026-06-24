@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 
 // components
-import Toast from "@/components/Toast";
+import { Toast } from "@/components/Toast";
 
 // types
 import { ToastType } from "@/types/ToastMessage";

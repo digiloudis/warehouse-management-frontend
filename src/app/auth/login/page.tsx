@@ -8,7 +8,7 @@ import { useToast } from "@/context/ToastContext";
 // components
 import { Flex, Text, Button, TextField } from "@radix-ui/themes";
 
-import Body from "@/components/Body";
+import { Body } from "@/components/Body";
 
 // actions
 import { login } from "./actions";

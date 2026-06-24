@@ -9,7 +9,8 @@ import { useToast } from "@/context/ToastContext";
 // components
 import { Card, Flex, Text, Grid, Badge } from "@radix-ui/themes";
 import { HomeIcon, CubeIcon, Component1Icon, PersonIcon } from "@radix-ui/react-icons";
-import Breadcrumbs from "@/components/Breadcrumbs";
+
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 // actions
 import { getProducts } from "@/app/dashboard/products/actions";

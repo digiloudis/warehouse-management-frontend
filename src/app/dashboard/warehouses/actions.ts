@@ -29,7 +29,7 @@ async function getWarehouses(): Promise<ActionResponse<Array<Warehouse>>> {
 
 		// read response
 		const data = await response.json();
-		if (!Array.isArray(data)) return { success: false, message: "We couldn't load your warehouses right now" };
+		if (!Array.isArray(data)) return { success: false, message: "Failed to load warehouses." };
 
 		return {
 			success: true,
@@ -41,7 +41,7 @@ async function getWarehouses(): Promise<ActionResponse<Array<Warehouse>>> {
 		};
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 
@@ -53,10 +53,8 @@ async function getWarehouse(id: number): Promise<ActionResponse<Warehouse>> {
 
 		// read response
 		const data = await response.json();
-
-		// 💡 Διόρθωση: Έλεγχος για "warehouseId" αντί για "productId"
 		if (!data || typeof data !== "object" || !("warehouseId" in data) || !("name" in data) || !("location" in data))
-			return { success: false, message: "We couldn't load your warehouse right now" };
+			return { success: false, message: "Failed to load warehouse details." };
 
 		return {
 			success: true,
@@ -68,38 +66,33 @@ async function getWarehouse(id: number): Promise<ActionResponse<Warehouse>> {
 		};
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 
-async function createWarehouse(body: { name: string; location: string }): Promise<ActionResponse<Warehouse>> {
+async function createWarehouse(name: string, location: string): Promise<ActionResponse<Warehouse>> {
 	try {
 		// call api & check status
-		const response = await request("/warehouses", {
-			method: "POST",
-			protected: true,
-			body: { name: body.name, location: body.location },
-		});
-
+		const response = await request("/warehouses", { method: "POST", protected: true, body: { name, location } });
 		if (!response.ok) return { success: false, message: "Something went wrong. Please try again later." };
 
 		// read response body
 		const data = await response.json();
 		if (!data || typeof data !== "object") {
-			return { success: false, message: "Warehouse data is corrupt" };
+			return { success: false, message: "Warehouse data is corrupted." };
 		}
 
 		return {
 			success: true,
 			data: {
-				id: data.warehouseId, // Ή data.id, ανάλογα με το mapping του backend σου
+				id: data.warehouseId,
 				name: data.name,
 				location: data.location,
 			},
 		};
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 
@@ -107,11 +100,11 @@ async function getWarehouseInventory(warehouseId: number): Promise<ActionRespons
 	try {
 		// call api
 		const response = await request(`/inventory/${warehouseId}`, { protected: true });
-		if (!response.ok) return { success: false, message: "Something went wrong while loading the inventory." };
+		if (!response.ok) return { success: false, message: "Something went wrong. Please try again later." };
 
 		// read response
 		const data = await response.json();
-		if (!Array.isArray(data)) return { success: false, message: "We couldn't load the warehouse inventory right now." };
+		if (!Array.isArray(data)) return { success: false, message: "Failed to load warehouse inventory." };
 
 		return {
 			success: true,
@@ -126,7 +119,7 @@ async function getWarehouseInventory(warehouseId: number): Promise<ActionRespons
 		};
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 

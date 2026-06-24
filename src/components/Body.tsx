@@ -29,4 +29,4 @@ const Body = ({ centered = false, short = false, children }: BodyProps) => {
 	);
 };
 
-export default Body;
+export { Body };

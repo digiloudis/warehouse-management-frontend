@@ -22,7 +22,7 @@ async function getProducts(isArchived?: boolean): Promise<ActionResponse<Array<P
 
 		// read response
 		const data = await response.json();
-		if (!Array.isArray(data)) return { success: false, message: "We couldn't load your products right now" };
+		if (!Array.isArray(data)) return { success: false, message: "Failed to load products." };
 
 		return {
 			success: true,
@@ -38,7 +38,7 @@ async function getProducts(isArchived?: boolean): Promise<ActionResponse<Array<P
 		};
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 
@@ -59,7 +59,7 @@ async function getProduct(id: number): Promise<ActionResponse<Product>> {
 			!("price" in data) ||
 			!("isArchived" in data)
 		)
-			return { success: false, message: "We couldn't load your product right now" };
+			return { success: false, message: "Failed to load product details." };
 
 		return {
 			success: true,
@@ -73,7 +73,7 @@ async function getProduct(id: number): Promise<ActionResponse<Product>> {
 		};
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 
@@ -86,7 +86,7 @@ async function createProduct(name: string, barcode: string, price: number): Prom
 		// read response body
 		const data = await response.json();
 		if (!data || typeof data !== "object") {
-			return { success: false, message: "Product data is corrupt" };
+			return { success: false, message: "Product data is corrupted." };
 		}
 
 		return {
@@ -101,7 +101,7 @@ async function createProduct(name: string, barcode: string, price: number): Prom
 		};
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 
@@ -109,12 +109,12 @@ async function updateProduct(id: number, body: { name: string; barcode: string; 
 	try {
 		// call api & check status
 		const response = await request(`/products/${id}`, { method: "PUT", protected: true, body });
-		if (!response.ok) return { success: false, message: "Something went wrong while updating the product." };
+		if (!response.ok) return { success: false, message: "Something went wrong. Please try again later." };
 
 		// read response body
 		const data = await response.json();
 		if (!data || typeof data !== "object") {
-			return { success: false, message: "Product data is corrupt" };
+			return { success: false, message: "Product data is corrupted." };
 		}
 
 		return {
@@ -129,7 +129,7 @@ async function updateProduct(id: number, body: { name: string; barcode: string; 
 		};
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 
@@ -137,12 +137,12 @@ async function archiveProduct(id: number): Promise<ActionResponse<void>> {
 	try {
 		// call api & check status
 		const response = await request(`/products/${id}`, { method: "DELETE", protected: true });
-		if (!response.ok) return { success: false, message: "Something went wrong while archiving the product." };
+		if (!response.ok) return { success: false, message: "Something went wrong. Please try again later." };
 
-		return { success: true, data: null };
+		return { success: true, data: undefined };
 	} catch (error) {
 		console.error(error);
-		return { success: false, message: "An unexpected error has occurred." };
+		return { success: false, message: "An unexpected error occurred." };
 	}
 }
 

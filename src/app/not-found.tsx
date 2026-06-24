@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Flex, Text, Button, Badge } from "@radix-ui/themes";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
 
-import Body from "@/components/Body";
+import { Body } from "@/components/Body";
 
 export default function Page() {
 	const router = useRouter();

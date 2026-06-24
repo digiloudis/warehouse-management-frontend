@@ -2,8 +2,12 @@
 
 import React from "react";
 
+// context
+import { useToast } from "@/context/ToastContext";
+
 // components
-import { Flex, Text } from "@radix-ui/themes";
+import { Flex, Text, IconButton } from "@radix-ui/themes";
+import { CopyIcon } from "@radix-ui/react-icons";
 
 // types
 import type { Button } from "@radix-ui/themes";
@@ -16,10 +20,24 @@ type HeaderButton = {
 type HeaderProps = {
 	title: string;
 	description: string;
+	titleCopy?: boolean;
+	descriptionCopy?: boolean;
 	buttons?: Array<HeaderButton>;
 };
 
-const Header = ({ title, description, buttons = [] }: HeaderProps) => {
+const Header = ({ title, description, titleCopy, descriptionCopy, buttons = [] }: HeaderProps) => {
+	const toast = useToast();
+
+	const handleCopy = async (text: string) => {
+		try {
+			await navigator.clipboard.writeText(text);
+			toast.show("success", `${text} copied to clipboard.`);
+		} catch (error) {
+			console.error(error);
+			toast.show("error", `Failed to copy ${text}.`);
+		}
+	};
+
 	return (
 		<Flex
 			width="100%"
@@ -33,11 +51,25 @@ const Header = ({ title, description, buttons = [] }: HeaderProps) => {
 			{/* details */}
 			<Flex direction="column" gap="1" className="flex-1">
 				{/* title */}
-				<Text size="6" weight="bold">
-					{title}
-				</Text>
+				<Flex align="center" gap="2">
+					<Text size="6" weight="bold">
+						{title}
+					</Text>
+					{titleCopy && (
+						<IconButton size="1" variant="ghost" color="gray" className="!cursor-pointer" onClick={() => handleCopy(title)}>
+							<CopyIcon width="14" height="14" />
+						</IconButton>
+					)}
+				</Flex>
 				{/* description */}
-				<Text color="gray">{description}</Text>
+				<Flex align="center" gap="2">
+					<Text color="gray">{description}</Text>
+					{descriptionCopy && (
+						<IconButton size="1" variant="ghost" color="gray" className="!cursor-pointer" onClick={() => handleCopy(description)}>
+							<CopyIcon width="14" height="14" />
+						</IconButton>
+					)}
+				</Flex>
 			</Flex>
 
 			{/* buttons */}
