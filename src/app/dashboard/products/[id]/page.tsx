@@ -1,165 +1,226 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
-import { Box, Flex, Grid } from "@radix-ui/themes";
-import { ArrowLeftIcon, HomeIcon } from "@radix-ui/react-icons";
-import Link from "next/link";
+import React, { useEffect, useState, use } from "react";
+import { useRouter } from "next/navigation";
+
+// contexts
+import { useToast } from "@/context/ToastContext";
 
 // components
-import { Navigation } from "@/components/Navigation";
-import { Content } from "@/components/Content";
-import Label from "@/components/Label";
+import { Button, Flex, Text, TextField, Dialog, Code } from "@radix-ui/themes";
+import { Pencil1Icon, ArchiveIcon, PlusIcon } from "@radix-ui/react-icons";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 // actions
-import { getProductDetails } from "./actions";
+import { getRole } from "../../actions";
+import { archiveProduct, getProduct } from "../actions";
+
+// types
+import type { UserRole } from "../../actions";
+import type { Product } from "../actions";
+
+type InventoryItem = {
+	inventoryId: number;
+	productId: number;
+	productName: string;
+	warehouseId: number;
+	warehouseName: string;
+	quantity: number;
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
-export default function ProductDetailsPage({ params }: PageProps) {
-	const { id } = use(params);
+export default function Page({ params }: PageProps) {
+	const args = use(params);
+	const toast = useToast();
+	const router = useRouter();
 
-	const [product, setProduct] = useState<any>(null);
-	const [locations, setLocations] = useState<Array<any>>([]);
-	const [loading, setLoading] = useState(true);
+	const [role, setRole] = useState<UserRole | null>(null);
+	const [product, setProduct] = useState<Product | null>(null);
 
+	const [isLoading, setIsLoading] = useState<boolean>(true);
+	const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
+
+	const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState<boolean>(false);
+	const [archiveConfirmation, setArchiveConfirmation] = useState<string>("");
+
+	// get role & product
 	useEffect(() => {
-		(async () => {
-			const result = await getProductDetails(id); // Ή όπως ονομάζεται το action σου
-			if (result.success) {
-				setProduct(result.product);
+		setIsLoading(true);
 
-				// 🌟 Πρόσθεσε το || [] εδώ για να διώξεις το σφάλμα:
-				setLocations(result.locations || []);
-			}
-			setLoading(false);
-		})();
-	}, [id]);
+		Promise.all([getRole(), getProduct(parseInt(args.id))])
+			.then(([roleResponse, productResponse]) => {
+				setRole(roleResponse);
 
-	const totalStock = locations.reduce((acc, item) => acc + item.quantity, 0);
+				if (!productResponse.success) {
+					toast.show("error", productResponse.message);
+					setProduct(null);
+				} else setProduct(productResponse.data);
+			})
+			.catch((error) => {
+				console.error(error);
+				toast.show("error", "Something went wrong. Please try again later.");
+			})
+			.finally(() => setIsLoading(false));
+	}, [args.id]);
 
-	if (loading) {
-		return (
-			<>
-				<Navigation />
-				<Content>
-					<Label size="2" color="gray" className="animate-pulse">
-						Loading product details...
-					</Label>
-				</Content>
-			</>
-		);
+	const isAdmin: boolean = role === 1;
+	const isManager: boolean = role === 2;
+
+	// archive confirmation
+	async function handleArchive() {
+		if (!product || !product.id) throw new Error();
+		if (archiveConfirmation.toLowerCase() !== "archive") return;
+
+		try {
+			setIsActionLoading(true);
+
+			const response = await archiveProduct(product.id);
+			if (response.success) {
+				toast.show("success", "Product archived.");
+				setIsArchiveDialogOpen(false);
+
+				router.push("/dashboard/products");
+			} else toast.show("error", response.message || "failed to archive product");
+		} catch (error) {
+			console.log(error);
+			toast.show("error", "An unexpected error occurred.");
+		} finally {
+			setIsActionLoading(false);
+		}
 	}
 
-	if (!product) {
+	if (isLoading)
+		return (
+			<Text size="2" className="select-none text-[var(--gray-10)]">
+				Loading product...
+			</Text>
+		);
+
+	if (!product)
 		return (
 			<>
-				<Navigation />
-				<Content>
-					<Label size="3" color="red">
-						Product not found.
-					</Label>
-				</Content>
+				<Breadcrumbs
+					items={[
+						{ label: "Dashboard", url: "/dashboard" },
+						{ label: "Products", url: "/dashboard/products" },
+						{ label: "Unknown product", url: `/dashboard/products/` },
+					]}
+				/>
+				<Text size="2" className="select-none text-[var(--gray-10)]">
+					Product not found.
+				</Text>
 			</>
 		);
-	}
+
+	if (product?.isArchived)
+		return (
+			<>
+				<Breadcrumbs
+					items={[
+						{ label: "Dashboard", url: "/dashboard" },
+						{ label: "Products", url: "/dashboard/products" },
+						{ label: product.name, url: `/dashboard/products/${product.id}` },
+					]}
+				/>
+				<Text size="2" className="select-none text-[var(--gray-10)]">
+					Product is archived.
+				</Text>
+			</>
+		);
 
 	return (
 		<>
-			<Navigation />
-			<Content>
-				{/* Breadcrumb */}
-				<Box>
-					<Link
-						href="/dashboard/products"
-						className="inline-flex items-center gap-2 text-[var(--gray-10)] hover:text-[var(--slate-12)] transition-colors text-sm font-medium"
-					>
-						<ArrowLeftIcon /> Back to Products
-					</Link>
-				</Box>
+			{/* location */}
+			<Breadcrumbs
+				items={[
+					{ label: "Dashboard", url: "/dashboard" },
+					{ label: "Products", url: "/dashboard/products" },
+					{ label: product.name, url: `/dashboard/products/${product.id}` },
+				]}
+			/>
 
-				{/* Header */}
-				<Flex justify="between" align="end">
-					<Flex direction="column" gap="1">
-						<Label size="8" weight="bold" className="text-[var(--slate-12)] tracking-tight">
-							{product.name}
-						</Label>
-						<Label size="3" className="text-[var(--gray-10)]">
-							Product ID: #{id} • Barcode: {product.barcode || "N/A"}
-						</Label>
-					</Flex>
+			{/* header */}
+			<Flex width="100%" direction={{ initial: "column", sm: "row" }} align={{ initial: "start", sm: "center" }} justify="between" wrap="wrap" gap="4">
+				<Flex direction="column" gap="1" className="flex-1">
+					<Text size="6" weight="bold" className="select-none">
+						{product.name}
+					</Text>
+					<Text size="3" className="select-none text-[var(--gray-10)]">
+						{product.barcode}
+					</Text>
 				</Flex>
 
-				{/* Quick Info Cards */}
-				<Grid columns={{ initial: "1", sm: "2" }} gap="4">
-					<Box className="p-4 bg-[var(--gray-3)] rounded-[var(--radius-3)]">
-						<Label size="2" color="gray" className="block">
-							Unit Price
-						</Label>
-						<Label size="6" weight="bold" className="block mt-1 text-[var(--slate-12)]">
-							€{product.price?.toFixed(2)}
-						</Label>
-					</Box>
-					<Box className="p-4 bg-[var(--gray-3)] rounded-[var(--radius-3)]">
-						<Label size="2" color="gray" className="block">
-							Total Global Stock
-						</Label>
-						<Label size="6" weight="bold" className="block mt-1 text-[var(--slate-12)]">
-							{totalStock} units
-						</Label>
-					</Box>
-				</Grid>
+				{/* actions */}
+				{(isAdmin || isManager) && (
+					<Flex gap="2" wrap="wrap">
+						{/* edit button & dialog */}
+						<Button variant="soft" color="gray" size="2" className="!cursor-pointer" onClick={() => {}}>
+							<Pencil1Icon width="16" height="16" />
+							Edit
+						</Button>
 
-				{/* Stock Location Section */}
-				<Box mt="4">
-					<Label size="5" weight="bold" className="block text-[var(--slate-12)]">
-						Stock Distribution
-					</Label>
-					<Label size="2" color="gray">
-						Where this product is currently stored and in what quantities.
-					</Label>
-				</Box>
+						{/* archive button & dialog */}
+						<Dialog.Root
+							open={isArchiveDialogOpen}
+							onOpenChange={(open) => {
+								setIsArchiveDialogOpen(open);
+								if (!open) setArchiveConfirmation("");
+							}}
+						>
+							<Dialog.Trigger>
+								<Button color="red" size="2" className="!cursor-pointer" disabled={!product?.id}>
+									<ArchiveIcon width="16" height="16" />
+									Archive
+								</Button>
+							</Dialog.Trigger>
 
-				{/* Locations List */}
-				<Flex direction="column" gap="2">
-					{locations.length === 0 ? (
-						<Box className="p-6 text-center bg-[var(--gray-2)] border border-dashed border-[var(--gray-6)] rounded-[var(--radius-3)]">
-							<Label size="2" color="gray" className="italic">
-								This product is currently not stocked in any warehouse.
-							</Label>
-						</Box>
-					) : (
-						locations.map((loc, index) => (
-							<Box key={index} className="p-4 bg-white border border-[var(--gray-5)] rounded-[var(--radius-3)]">
-								<Flex justify="between" align="center">
-									<Flex align="center" gap="3">
-										<Box className="p-2 bg-[var(--gray-3)] rounded-[var(--radius-2)] text-[var(--gray-10)]">
-											<HomeIcon width="20" height="20" />
-										</Box>
-										<Box>
-											<Label size="4" weight="bold" className="block text-[var(--slate-12)]">
-												{loc.warehouseName || `Warehouse #${loc.warehouseId}`}
-											</Label>
-											<Label size="2" color="gray">
-												Warehouse ID: {loc.warehouseId}
-											</Label>
-										</Box>
-									</Flex>
-									<Box className="text-right">
-										<Label size="1" color="gray" className="block">
-											Available Stock
-										</Label>
-										<Label size="4" weight="bold" className="text-[var(--slate-12)]">
-											{loc.quantity} pcs
-										</Label>
-									</Box>
+							<Dialog.Content size="2" maxWidth="400px">
+								<Dialog.Title className="select-none">Archive product</Dialog.Title>
+								<Dialog.Description size="2" mb="2" className="select-none">
+									This action will archive <strong>{product?.name}</strong>. To confirm, please type{" "}
+									<Code color="red" weight="bold">
+										archive
+									</Code>{" "}
+									below.
+								</Dialog.Description>
+
+								<Flex direction="column" gap="3">
+									<label>
+										<TextField.Root
+											placeholder='Type "archive" to confirm'
+											value={archiveConfirmation}
+											onChange={(e) => setArchiveConfirmation(e.target.value)}
+											disabled={isActionLoading}
+											autoComplete="off"
+										/>
+									</label>
 								</Flex>
-							</Box>
-						))
-					)}
-				</Flex>
-			</Content>
+
+								<Flex justify="end" gap="2" mt="4">
+									<Dialog.Close>
+										<Button variant="soft" color="gray" className="!cursor-pointer" disabled={isActionLoading}>
+											Cancel
+										</Button>
+									</Dialog.Close>
+									<Button
+										color="red"
+										className="!cursor-pointer"
+										disabled={archiveConfirmation.toLowerCase() !== "archive" || isActionLoading}
+										loading={isActionLoading}
+										onClick={handleArchive}
+									>
+										<ArchiveIcon width="12" height="12" />
+										Archive
+									</Button>
+								</Flex>
+							</Dialog.Content>
+						</Dialog.Root>
+					</Flex>
+				)}
+			</Flex>
 		</>
 	);
 }

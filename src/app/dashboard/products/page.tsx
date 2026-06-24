@@ -1,114 +1,242 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Flex, IconButton, Card } from "@radix-ui/themes";
-import { PlusIcon, CubeIcon, TrashIcon } from "@radix-ui/react-icons";
+
+// context
+import { useToast } from "@/context/ToastContext";
 
 // components
-import { Navigation } from "@/components/Navigation";
-import { Content } from "@/components/Content";
-import Label from "@/components/Label";
-import Button from "@/components/Button";
+import { Button, Flex, Text } from "@radix-ui/themes";
+import { ArchiveIcon, CopyIcon, CubeIcon, Link2Icon, PlusIcon } from "@radix-ui/react-icons";
+
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { Header } from "@/components/Header";
+import { Searchbar } from "@/components/Searchbar";
+import ListCard from "@/components/ListCard";
+import Pagination from "@/components/Pagination";
 
 // actions
-import { getProducts, deleteProduct } from "./actions";
+import { getRole } from "../actions";
+import { getProducts } from "./actions";
 
-export default function ProductsPage() {
+// types
+import type { UserRole } from "../actions";
+import type { Product } from "./actions";
+
+// data
+const sorts: Record<string, string> = {
+	"name-ascending": "Name (A-Z)",
+	"name-descending": "Name (Z-A)",
+	"price-descending": "Price (Highest)",
+	"price-ascending": "Price (Lowest)",
+	"id-descending": "Newest",
+	"id-ascending": "Oldest",
+};
+
+export default function Page() {
 	const router = useRouter();
-	const [products, setProducts] = useState<Array<any>>([]);
-	const [loading, setLoading] = useState(true);
+	const toast = useToast();
 
-	const fetchProducts = async () => {
-		setLoading(true);
-		const result = await getProducts();
-		if (result.success) setProducts(result.data);
-		setLoading(false);
-	};
+	const [role, setRole] = useState<UserRole | null>(null);
+	const [products, setProducts] = useState<Array<Product>>([]);
 
+	const [page, setPage] = useState<number>(1);
+	const [search, setSearch] = useState<string>("");
+	const [sortMode, setSortMode] = useState<string>("name-ascending");
+
+	const [isLoading, setIsLoading] = useState<boolean>(true);
+
+	const isAdmin: boolean = role === 1;
+	const isManager: boolean = role === 2;
+
+	// get role & products
 	useEffect(() => {
-		fetchProducts();
-	}, []);
+		let isMounted: boolean = true;
+		setIsLoading(true);
 
-	const handleDelete = async (id: string | number) => {
-		if (confirm("Are you sure you want to delete this product?")) {
-			const result = await deleteProduct(id);
-			if (result.success) {
-				fetchProducts();
-			} else {
-				alert(result.error || "Failed to delete product.");
-			}
+		Promise.all([getRole(), getProducts()])
+			.then(([role, productsResponse]) => {
+				if (!isMounted) return;
+
+				setRole(role as UserRole);
+
+				if (productsResponse && productsResponse.success) {
+					setProducts(productsResponse.data ?? []);
+				} else {
+					toast.show("error", productsResponse?.message || "Failed to fetch products.");
+					setProducts([]);
+				}
+			})
+			.catch((error) => {
+				if (!isMounted) return;
+
+				console.error(error);
+				toast.show("error", "Something went wrong while loading data.");
+			})
+			.finally(() => {
+				if (isMounted) setIsLoading(false);
+			});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [toast]);
+
+	// product search
+	const searchedProducts: Array<Product> = products.filter((product: Product) => {
+		const expression: RegExp = new RegExp(/[\s\-_]/g); // remove whitespace, hyphens, & underlines
+
+		const term: string = search.toLowerCase().replace(expression, "");
+		if (!term) return true;
+
+		const name: string = (product.name || "").toLowerCase().replace(expression, "");
+		const barcode: string = (product.barcode || "").toLowerCase().replace(expression, "");
+
+		return name.includes(term) || barcode.includes(term);
+	});
+
+	// product sort
+	const sortedProducts: Array<Product> = [...searchedProducts].sort((productA: Product, productB: Product) => {
+		switch (sortMode) {
+			case "name-ascending":
+				return productA.name.localeCompare(productB.name);
+			case "name-descending":
+				return productB.name.localeCompare(productA.name);
+			case "price-ascending":
+				return productA.price - productB.price;
+			case "price-descending":
+				return productB.price - productA.price;
+			case "id-descending":
+				return productB.id - productA.id;
+			case "id-ascending":
+				return productA.id - productB.id;
+			default:
+				return 0;
 		}
-	};
+	});
+
+	// product pagination
+	const pages: number = Math.ceil(sortedProducts.length / 10) || 1;
+	const startIndex: number = (page - 1) * 10;
+	const endIndex: number = startIndex + 10;
+
+	const paginatedProducts: Array<Product> = sortedProducts.slice(startIndex, endIndex);
 
 	return (
 		<>
-			<Navigation />
-			<Content>
-				{/* Header */}
-				<Flex justify="between" align="end" mb="4">
-					<Flex direction="column" gap="2">
-						<Label size="8" weight="bold" className="text-[var(--slate-12)] tracking-tight">
-							Products
-						</Label>
-						<Label size="3" className="text-[var(--gray-10)]">
-							Manage your global product catalog, pricing, and barcodes.
-						</Label>
-					</Flex>
-					<Box mb="1">
-						<Button className="cursor-pointer" onClick={() => router.push("/dashboard/products/create")}>
-							<PlusIcon /> Create Product
-						</Button>
-					</Box>
-				</Flex>
+			{/* location */}
+			<Breadcrumbs
+				items={[
+					{ label: "Dashboard", url: "/dashboard" },
+					{ label: "Products", url: "/dashboard/products" },
+				]}
+			/>
 
-				{/* List */}
-				<Flex direction="column" gap="3">
-					{loading ? (
-						<Label size="2" color="gray" className="animate-pulse">
-							Loading catalog...
-						</Label>
-					) : products.length === 0 ? (
-						<Label size="2" color="gray" className="italic text-center p-4">
-							No products found.
-						</Label>
-					) : (
-						products.map((product) => {
-							const currentId = product.id ?? product.productId;
-							return (
-								<Card key={currentId} variant="surface" className="p-4 transition-colors">
-									<Flex justify="between" align="center">
-										<Flex align="center" gap="3">
-											<Box className="p-2 bg-[var(--gray-3)] rounded-[var(--radius-2)] text-[var(--gray-10)]">
-												<CubeIcon width="20" height="20" />
-											</Box>
-											<Box>
-												<Label size="4" weight="bold" className="block text-[var(--slate-12)]">
-													{product.name}
-												</Label>
-												<Label size="2" color="gray">
-													Barcode: {product.barcode}
-												</Label>
-											</Box>
-										</Flex>
+			{/* header */}
+			<Header
+				title="Products"
+				description="Manage your product catalog, track stock levels, and monitor inventory movement across all locations."
+				buttons={[
+					{
+						isShown: isAdmin || isManager,
+						button: (
+							<Button className="!cursor-pointer" onClick={() => router.push("/dashboard/products/create")}>
+								<PlusIcon width="16" height="16" />
+								Create product
+							</Button>
+						),
+					},
+				]}
+			/>
 
-										<Flex align="center" gap="4">
-											<Label size="3" weight="bold" className="text-[var(--slate-12)]">
-												€{product.price?.toFixed(2)}
-											</Label>
+			{/* search & sort */}
+			{!isLoading && products.length > 0 && (
+				<Searchbar
+					search={search}
+					searchPlaceholder="Search product.."
+					onSearchChange={(value) => {
+						setSearch(value);
+						setPage(1);
+					}}
+					sortMode={sortMode}
+					onSortChange={setSortMode}
+					sortOptions={sorts}
+					sortSeparators={["name-descending", "price-ascending"]}
+				/>
+			)}
 
-											{/* 🌟 Απλό κουμπί Delete αντί για Dropdown Menu */}
-											<IconButton variant="ghost" color="red" className="cursor-pointer" onClick={() => handleDelete(currentId)}>
-												<TrashIcon width="18" height="18" />
-											</IconButton>
-										</Flex>
-									</Flex>
-								</Card>
-							);
-						})
-					)}
-				</Flex>
-			</Content>
+			{/* products */}
+			<Flex width="100%" direction="column" gap="2">
+				{isLoading && (
+					<Text size="2" color="gray" className="select-none">
+						Loading products...
+					</Text>
+				)}
+
+				{!isLoading && searchedProducts.length === 0 && (
+					<Text size="2" color="gray" className="select-none">
+						No products found.
+					</Text>
+				)}
+
+				{!isLoading && sortedProducts.length > 0 && (
+					<>
+						<Text size="2" color="gray" weight="medium" className="select-none">
+							{sortedProducts.length} product{sortedProducts.length > 1 ? "s" : ""}
+						</Text>
+						{paginatedProducts.map((product: Product) => (
+							<ListCard
+								key={product.id}
+								link={`/dashboard/products/${product.id}`}
+								icon={<CubeIcon width="24" height="24" />}
+								title={product.name}
+								description={product.barcode}
+								badge={`${product.price.toFixed(2)} €`}
+								options={[
+									{
+										type: "item",
+										label: "Duplicate",
+										icon: <CopyIcon width="16" height="16" />,
+										onClick: () => {
+											const params = new URLSearchParams({
+												name: `${product.name} (Copy)`,
+												barcode: `${product.barcode}-COPY`,
+												price: product.price.toString(),
+											});
+											router.push(`/dashboard/products/create?${params.toString()}`);
+										},
+									},
+									{
+										type: "item",
+										label: "Copy link",
+										icon: <Link2Icon width="16" height="16" />,
+										onClick: () => {
+											if (typeof window !== "undefined") {
+												navigator.clipboard.writeText(`${window.location.origin}/dashboard/products/${product.id}`);
+												toast.show("success", "Link copied.");
+											}
+										},
+									},
+									{ type: "separator" },
+									{
+										type: "item",
+										label: "Archive",
+										icon: <ArchiveIcon width="16" height="16" />,
+										color: "red",
+										onClick: () => {
+											console.log("Archiving product:", product.id);
+										},
+									},
+								]}
+							/>
+						))}
+					</>
+				)}
+			</Flex>
+
+			{/* pagination */}
+			{!isLoading && products.length > 0 && <Pagination page={page} pages={pages} onPageChange={setPage} />}
 		</>
 	);
 }

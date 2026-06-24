@@ -1,43 +1,40 @@
 "use client";
 
-import { Box, Flex } from "@radix-ui/themes";
-import { ArrowLeftIcon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 // components
-import Label from "@/components/Label";
-import Button from "@/components/Button";
+import { Flex, Text, Button, Badge } from "@radix-ui/themes";
+import { ArrowLeftIcon } from "@radix-ui/react-icons";
 
-export default function NotFoundPage() {
+import Body from "@/components/Body";
+
+export default function Page() {
 	const router = useRouter();
 
 	return (
-		<Flex direction="column" align="center" justify="center" className="min-h-screen bg-[var(--gray-1)] p-6">
-			<Flex direction="column" gap="5" className="max-w-[400px] w-full text-center">
-				{/* 1. Breadcrumb / Back Navigation */}
-				<Box className="text-left">
-					<Link
-						href="/dashboard"
-						className="inline-flex items-center gap-2 text-[var(--gray-10)] hover:text-[var(--slate-12)] transition-colors text-sm font-medium"
-					>
-						<ArrowLeftIcon /> Back to Dashboard
-					</Link>
-				</Box>
+		<Body centered short>
+			{/* badge */}
+			<Badge size="2" className="select-none">
+				404
+			</Badge>
 
-				{/* 2. Error Content */}
-				<Flex direction="column" gap="2" align="center">
-					<Label size="9" weight="bold" className="text-[var(--slate-12)] tracking-tighter leading-none select-none" style={{ fontSize: "120px" }}>
-						404
-					</Label>
-					<Label size="5" weight="bold" className="text-[var(--slate-12)] mt-2">
-						Page Not Found
-					</Label>
-					<Label size="3" className="text-[var(--gray-10)] px-4">
-						The page you are looking for doesn&apos;t exist or has been moved to another URL.
-					</Label>
-				</Flex>
+			{/* message */}
+			<Flex direction="column" gap="2" align="center" className="items-center content-center text-center">
+				<Text size="8" weight="bold" className="select-none">
+					Page not found
+				</Text>
+				<Text size="3" color="gray" className="select-none">
+					Sorry, we couldn't find the page you're looking for. It might have been moved, deleted, or never existed in the first place.
+				</Text>
 			</Flex>
-		</Flex>
+
+			{/* back button */}
+			<Button variant="soft" color="gray" size="2" onClick={() => router.back()}>
+				<Flex align="center" gap="2">
+					<ArrowLeftIcon width="16" height="16" />
+					Go back
+				</Flex>
+			</Button>
+		</Body>
 	);
 }

@@ -12,10 +12,8 @@ type ToastContextType = {
 	show: (type: ToastType, message: string, duration?: number) => void;
 };
 
-// context
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-// provider
 const ToastProvider = ({ children }: { children: React.ReactNode }) => {
 	const [toastData, setToastData] = useState<{
 		message: string;
@@ -30,6 +28,7 @@ const ToastProvider = ({ children }: { children: React.ReactNode }) => {
 	const show = useCallback((type: ToastType, message: string, duration = 5000) => {
 		setToastData(null);
 
+		// Μικρό timeout για να γίνει re-mount το component αν σκάσει συνεχόμενο ίδιο toast
 		setTimeout(() => {
 			setToastData({ message, type, duration });
 		}, 10);
@@ -44,7 +43,6 @@ const ToastProvider = ({ children }: { children: React.ReactNode }) => {
 	);
 };
 
-// hook
 const useToast = () => {
 	const context = useContext(ToastContext);
 	if (!context) {

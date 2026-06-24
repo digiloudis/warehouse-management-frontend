@@ -1,30 +1,31 @@
 "use client";
 
 import React from "react";
-import { Box, Flex } from "@radix-ui/themes";
+import { Flex } from "@radix-ui/themes";
 
 // types
 type BodyProps = {
 	centered?: boolean;
+	short?: boolean;
 	children: React.ReactNode;
 };
 
-const Body = ({ centered = false, children }: BodyProps) => {
+const Body = ({ centered = false, short = false, children }: BodyProps) => {
 	return (
-		<Box width="100%" className="min-h-screen">
-			<Flex
-				width="100%"
-				maxWidth="1200px"
-				direction="column"
-				align={centered ? "center" : "start"}
-				justify={centered ? "center" : "start"}
-				p="4"
-				gap="6"
-				className={`mx-auto ${centered ? "min-h-screen" : "min-h-[calc(100vh-2rem)]"}`}
-			>
-				{children}
-			</Flex>
-		</Box>
+		<Flex
+			width="100%"
+			maxWidth={short ? "400px" : "1200px"}
+			direction="column"
+			align={centered ? "center" : "start"}
+			justify={centered ? "center" : "start"}
+			px="4"
+			py="6"
+			gap="6"
+			className="mx-auto min-h-screen"
+			style={{ minHeight: centered ? "100vh" : "50vh" }}
+		>
+			{children}
+		</Flex>
 	);
 };
 

@@ -1,266 +1,263 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Box, Flex, Badge, Card, Dialog, Select, TextField } from "@radix-ui/themes";
-import { ArrowDownIcon, ArrowUpIcon, CounterClockwiseClockIcon, PlusIcon, MinusIcon } from "@radix-ui/react-icons";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+// context
+import { useToast } from "@/context/ToastContext";
 
 // components
-import { Navigation } from "@/components/Navigation";
-import { Content } from "@/components/Content";
-import Label from "@/components/Label";
-import Button from "@/components/Button";
+import { Button, Flex, Text } from "@radix-ui/themes";
+import { ArrowDownIcon, ArrowUpIcon, HomeIcon, Link2Icon, MinusIcon, PlusIcon } from "@radix-ui/react-icons";
+
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { Header } from "@/components/Header";
+import { Searchbar } from "@/components/Searchbar";
+import ListCard from "@/components/ListCard";
+import Pagination from "@/components/Pagination";
 
 // actions
-import { getTransactions, getProductsForSelect, createTransaction } from "./actions";
+import { getTransactions } from "./actions";
+import { getProducts } from "../products/actions";
+import { getWarehouses } from "../warehouses/actions";
 
-export default function TransactionsPage() {
-	const [transactions, setTransactions] = useState<Array<any>>([]);
-	const [products, setProducts] = useState<Array<any>>([]);
-	const [loading, setLoading] = useState(true);
+// lib
+import { formatNumber } from "@/lib/format";
 
-	// Modal States
-	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [modalType, setModalType] = useState<"in" | "out">("in");
-	const [selectedProductId, setSelectedProductId] = useState<string>("");
-	const [quantity, setQuantity] = useState<string>("");
-	const [submitting, setSubmitting] = useState(false);
-	const [formError, setFormError] = useState<string | null>(null);
+// types
+import type { Transaction } from "./actions";
+import type { Product } from "../products/actions";
+import type { Warehouse } from "../warehouses/actions";
 
-	const fetchData = async () => {
-		setLoading(true);
-		const txResult = await getTransactions();
-		if (txResult.success) setTransactions(txResult.data);
+// data
+const sorts: Record<string, string> = {
+	"date-descending": "Date (Newest)",
+	"date-ascending": "Date (Oldest)",
+	"quantity-descending": "Quantity (Highest)",
+	"quantity-ascending": "Quantity (Lowest)",
+	"product-name-ascending": "Product name (A-Z)",
+	"product-name-descending": "Product name (Z-A)",
+	"warehouse-name-ascending": "Warehouse name (A-Z)",
+	"warehouse-name-descending": "Warehouse name (Z-A)",
+	"type-inbound": "Type (Inbound)",
+	"type-outbound": "Type (Outbound)",
+};
 
-		const prodResult = await getProductsForSelect();
-		if (prodResult.success) setProducts(prodResult.data);
+export default function Page() {
+	const router = useRouter();
+	const toast = useToast();
 
-		setLoading(false);
-	};
+	const [transactions, setTransactions] = useState<Array<Transaction>>([]);
+	const [products, setProducts] = useState<Array<Product>>([]);
+	const [warehouses, setWarehouses] = useState<Array<Warehouse>>([]);
 
+	const [page, setPage] = useState<number>(1);
+	const [search, setSearch] = useState<string>("");
+	const [sortMode, setSortMode] = useState<string>("date-ascending");
+
+	const [isLoading, setIsLoading] = useState<boolean>(true);
+
+	// get transactions, products, & warehouses
 	useEffect(() => {
-		fetchData();
-	}, []);
+		let isMounted: boolean = true;
+		setIsLoading(true);
 
-	const openTransactionModal = (type: "in" | "out") => {
-		setModalType(type);
-		setSelectedProductId("");
-		setQuantity("");
-		setFormError(null);
-		setIsModalOpen(true);
-	};
+		Promise.all([getTransactions(), getProducts(), getWarehouses()])
+			.then(([transactionsResponse, productsResponse, warehousesResponse]) => {
+				if (!isMounted) return;
 
-	const handleFormSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!selectedProductId || !quantity) {
-			setFormError("Please select a product and enter quantity.");
-			return;
+				if (transactionsResponse && transactionsResponse.success) {
+					setTransactions(transactionsResponse.data ?? []);
+				} else {
+					toast.show("error", transactionsResponse?.message || "Failed to fetch transactions.");
+					setTransactions([]);
+				}
+
+				if (productsResponse && productsResponse.success) {
+					setProducts(productsResponse.data ?? []);
+				} else {
+					toast.show("error", productsResponse?.message || "Failed to fetch products.");
+					setProducts([]);
+				}
+
+				if (warehousesResponse && warehousesResponse.success) {
+					setWarehouses(warehousesResponse.data ?? []);
+				} else {
+					toast.show("error", warehousesResponse?.message || "Failed to fetch warehouses.");
+					setWarehouses([]);
+				}
+			})
+			.catch((error) => {
+				if (!isMounted) return;
+
+				console.error(error);
+				toast.show("error", "Something went wrong while loading data.");
+			})
+			.finally(() => {
+				if (isMounted) setIsLoading(false);
+			});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [toast]);
+
+	// transaction search
+	const searchedTransactions: Array<Transaction> = transactions.filter((transaction: Transaction) => {
+		const product: Product | undefined = products.find((product: Product) => product.id === transaction.productId);
+		const warehouse: Warehouse | undefined = warehouses.find((warehouse: Warehouse) => warehouse.id === transaction.warehouseId);
+
+		const term: string = search.toLowerCase();
+
+		const productName: string = product?.name?.toLowerCase() || "";
+		const productBarcode: string = product?.barcode?.toLowerCase() || "";
+		const warehouseName: string = warehouse?.name?.toLowerCase() || "";
+
+		return productName.includes(term) || productBarcode.includes(term) || warehouseName.includes(term);
+	});
+
+	// transaction sort
+	const sortedTransactions: Array<Transaction> = [...searchedTransactions].sort((transactionA: Transaction, transactionB: Transaction) => {
+		const names = {
+			products: {
+				a: products.find((product: Product) => product.id === transactionA.productId)?.name || "",
+				b: products.find((product: Product) => product.id === transactionB.productId)?.name || "",
+			},
+			warehouses: {
+				a: warehouses.find((warehouse: Warehouse) => warehouse.id === transactionA.warehouseId)?.name || "",
+				b: warehouses.find((warehouse: Warehouse) => warehouse.id === transactionB.warehouseId)?.name || "",
+			},
+		};
+
+		switch (sortMode) {
+			case "date-descending":
+				return new Date(transactionB.date).getTime() - new Date(transactionA.date).getTime();
+			case "date-ascending":
+				return new Date(transactionA.date).getTime() - new Date(transactionB.date).getTime();
+			case "quantity-descending":
+				return transactionB.quantity - transactionA.quantity;
+			case "quantity-ascending":
+				return transactionA.quantity - transactionB.quantity;
+			case "product-name-ascending":
+				return names.products.a.localeCompare(names.products.b || "");
+			case "product-name-descending":
+				return names.products.b.localeCompare(names.products.a || "");
+			case "warehouse-name-ascending":
+				return names.warehouses.a.localeCompare(names.warehouses.b || "");
+			case "warehouse-name-descending":
+				return names.warehouses.b.localeCompare(names.warehouses.a || "");
+			case "type-inbound":
+				return transactionA.type.toLowerCase() === "in" ? -1 : 1;
+			case "type-outbound":
+				return transactionA.type.toLowerCase() === "out" ? -1 : 1;
+			default:
+				return 0;
 		}
+	});
 
-		const parsedQty = parseInt(quantity, 10);
-		if (isNaN(parsedQty) || parsedQty <= 0) {
-			setFormError("Quantity must be a positive integer.");
-			return;
-		}
+	// transaction pagination
+	const pages: number = Math.ceil(sortedTransactions.length / 10) || 1;
+	const startIndex: number = (page - 1) * 10;
+	const endIndex: number = startIndex + 10;
 
-		setSubmitting(true);
-		setFormError(null);
-
-		const result = await createTransaction(modalType, {
-			productId: Number(selectedProductId),
-			quantity: parsedQty,
-		});
-
-		if (result.success) {
-			setIsModalOpen(false);
-			fetchData(); // Refresh logs
-		} else {
-			setFormError(result.error || "Transaction failed.");
-		}
-		setSubmitting(false);
-	};
-
-	const formatDate = (dateString: string) => {
-		const date = new Date(dateString);
-		return date.toLocaleDateString("el-GR", {
-			day: "2-digit",
-			month: "2-digit",
-			year: "numeric",
-			hour: "2-digit",
-			minute: "2-digit",
-		});
-	};
+	const paginatedTransactions: Array<Transaction> = sortedTransactions.slice(startIndex, endIndex);
 
 	return (
 		<>
-			<Navigation />
-			<Content>
-				{/* Header */}
-				<Flex justify="between" align="end" mb="4">
-					<Flex direction="column" gap="2">
-						<Label size="8" weight="bold" className="text-[var(--slate-12)] tracking-tight">
-							Transactions Log
-						</Label>
-						<Label size="3" className="text-[var(--gray-10)]">
-							Real-time audit log of all stock movements across facilities.
-						</Label>
-					</Flex>
+			{/* location */}
+			<Breadcrumbs
+				items={[
+					{ label: "Dashboard", url: "/dashboard" },
+					{ label: "Transactions", url: "/dashboard/transactions" },
+				]}
+			/>
 
-					{/* Action Buttons */}
-					<Flex gap="2" mb="1">
-						<Button className="cursor-pointer" onClick={() => openTransactionModal("in")}>
-							<PlusIcon /> Stock In
-						</Button>
-						<Button className="cursor-pointer" onClick={() => openTransactionModal("out")}>
-							<MinusIcon /> Stock Out
-						</Button>
-					</Flex>
-				</Flex>
+			{/* header */}
+			<Header
+				title="Transactions"
+				description="Log new stock movements, view past inbound or outbound transfers, and track exactly how inventory travels through your network."
+				buttons={[
+					{
+						button: (
+							<Button color="green" className="!cursor-pointer" onClick={() => router.push("/dashboard/transactions/create?type=in")}>
+								<PlusIcon width="16" height="16" />
+								New inbound
+							</Button>
+						),
+					},
+					{
+						button: (
+							<Button color="red" className="!cursor-pointer" onClick={() => router.push("/dashboard/transactions/create?type=out")}>
+								<MinusIcon width="16" height="16" />
+								New outbound
+							</Button>
+						),
+					},
+				]}
+			/>
 
-				{/* Transactions List */}
-				<Flex direction="column" gap="2">
-					{loading ? (
-						<Card variant="surface" className="p-8 text-center">
-							<Label size="2" color="gray" className="animate-pulse">
-								Loading transaction logs...
-							</Label>
-						</Card>
-					) : transactions.length === 0 ? (
-						<Box className="p-8 text-center bg-[var(--gray-2)] border border-dashed border-[var(--gray-6)] rounded-[var(--radius-3)]">
-							<Label size="2" color="gray" className="italic">
-								No transactions recorded yet.
-							</Label>
-						</Box>
-					) : (
-						transactions.map((tx) => {
-							const isIncoming = tx.type === "IN";
+			{/* search & sort */}
+			{!isLoading && warehouses.length > 0 && (
+				<Searchbar
+					search={search}
+					searchPlaceholder="Search transaction.."
+					onSearchChange={(value) => {
+						setSearch(value);
+						setPage(1);
+					}}
+					sortMode={sortMode}
+					onSortChange={setSortMode}
+					sortOptions={sorts}
+					sortSeparators={["date-ascending", "quantity-ascending", "product-name-descending", "warehouse-name-descending"]}
+				/>
+			)}
+
+			{/* transactions */}
+			<Flex width="100%" direction="column" gap="2">
+				{isLoading && (
+					<Text size="2" color="gray" className="select-none">
+						Loading transactions...
+					</Text>
+				)}
+
+				{!isLoading && searchedTransactions.length === 0 && (
+					<Text size="2" color="gray" className="select-none">
+						No transactions found.
+					</Text>
+				)}
+
+				{!isLoading && sortedTransactions.length > 0 && (
+					<>
+						<Text size="2" color="gray" weight="medium" className="select-none">
+							{sortedTransactions.length} transaction{sortedTransactions.length > 1 ? "s" : ""}
+						</Text>
+						{paginatedTransactions.map((transaction: Transaction) => {
+							const product: Product | undefined = products.find((product: Product) => product.id === transaction.productId);
+							const warehouse: Warehouse | undefined = warehouses.find((warehouse: Warehouse) => warehouse.id === transaction.warehouseId);
+
+							const isInbound: boolean = transaction.type === "in";
 
 							return (
-								<Card key={tx.id} variant="surface" className="p-4 hover:border-[var(--gray-6)] transition-colors">
-									<Flex justify="between" align="center">
-										<Flex align="center" gap="4">
-											{/* Icon Indicator */}
-											<Box
-												className="p-2 rounded-[var(--radius-2)] border"
-												style={{
-													backgroundColor: isIncoming ? "var(--green-2)" : "var(--red-2)",
-													borderColor: isIncoming ? "var(--green-4)" : "var(--red-4)",
-													color: isIncoming ? "var(--green-11)" : "var(--red-11)",
-												}}
-											>
-												{isIncoming ? <ArrowDownIcon width="18" height="18" /> : <ArrowUpIcon width="18" height="18" />}
-											</Box>
-
-											<Box>
-												<Label size="4" weight="bold" className="block text-[var(--slate-12)]">
-													{tx.productName}
-												</Label>
-												<Flex gap="2" className="mt-0.5" align="center">
-													<Label size="2" color="gray">
-														Warehouse ID: #{tx.warehouseId}
-													</Label>
-													<Label size="2" className="text-[var(--gray-8)]">
-														•
-													</Label>
-													<Flex align="center" gap="1" className="text-[var(--gray-9)]">
-														<CounterClockwiseClockIcon width="12" height="12" />
-														<Label size="2">{formatDate(tx.date)}</Label>
-													</Flex>
-												</Flex>
-											</Box>
-										</Flex>
-
-										<Flex align="center" gap="3">
-											<Box className="text-right">
-												<Label size="4" weight="bold" style={{ color: isIncoming ? "var(--green-11)" : "var(--red-11)" }}>
-													{isIncoming ? "+" : "-"}
-													{tx.quantity}
-												</Label>
-												<Label size="1" color="gray" className="block">
-													units
-												</Label>
-											</Box>
-
-											<Badge color={isIncoming ? "green" : "red"} variant="soft" size="2">
-												{tx.type}
-											</Badge>
-										</Flex>
-									</Flex>
-								</Card>
+								<ListCard
+									key={transaction.id}
+									icon={isInbound ? <ArrowUpIcon width="24" height="24" /> : <ArrowDownIcon width="24" height="24" />}
+									iconColor={isInbound ? "green" : "red"}
+									title={product?.name ?? "Unknown product"}
+									titleLink={product ? `/dashboard/products/${product.id}` : undefined}
+									description={warehouse?.name ?? "Unknown warehouse"}
+									descriptionLink={warehouse ? `/dashboard/warehouses/${warehouse.id}` : undefined}
+									badge={formatNumber(transaction.quantity)}
+									badgeColor={isInbound ? "green" : "red"}
+									date={transaction.date}
+								/>
 							);
-						})
-					)}
-				</Flex>
+						})}
+					</>
+				)}
+			</Flex>
 
-				{/* 🌟 Radix Dialog Modal for Creating Transactions */}
-				<Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
-					<Dialog.Content size="3" style={{ maxWidth: 450 }}>
-						<Dialog.Title>{modalType === "in" ? "Stock Inbound (IN)" : "Stock Outbound (OUT)"}</Dialog.Title>
-						<Dialog.Description size="2" className="mb-4 text-[var(--gray-10)]">
-							{modalType === "in"
-								? "Add incoming stock quantity to a specific product catalog item."
-								: "Remove quantity from a product item due to dispatch or adjustment."}
-						</Dialog.Description>
-
-						<form onSubmit={handleFormSubmit}>
-							<Flex direction="column" gap="4">
-								{/* Product Select Dropdown */}
-								<Flex direction="column" gap="1">
-									<Label size="2" weight="bold" className="text-[var(--slate-12)]">
-										Select Product
-									</Label>
-									<Select.Root value={selectedProductId} onValueChange={setSelectedProductId} disabled={submitting}>
-										<Select.Trigger placeholder="Choose a product..." className="w-full" />
-										<Select.Content>
-											{products.map((p) => {
-												const currentId = p.id ?? p.productId;
-												return (
-													<Select.Item key={currentId} value={String(currentId)}>
-														{p.name} (Barcode: {p.barcode})
-													</Select.Item>
-												);
-											})}
-										</Select.Content>
-									</Select.Root>
-								</Flex>
-
-								{/* Quantity Input */}
-								<Flex direction="column" gap="1">
-									<Label size="2" weight="bold" className="text-[var(--slate-12)]">
-										Quantity (units)
-									</Label>
-									<TextField.Root
-										type="number"
-										min="1"
-										placeholder="e.g. 50"
-										value={quantity}
-										onChange={(e) => setQuantity(e.target.value)}
-										disabled={submitting}
-									/>
-								</Flex>
-
-								{/* Form Validation Error Handling */}
-								{formError && (
-									<Label size="2" color="red" weight="medium">
-										{formError}
-									</Label>
-								)}
-
-								{/* Buttons inside Modal */}
-								<Flex gap="3" justify="end" mt="2">
-									<Dialog.Close>
-										<Button type="button" disabled={submitting} className="cursor-pointer">
-											Cancel
-										</Button>
-									</Dialog.Close>
-									<Button type="submit" disabled={submitting} className="cursor-pointer">
-										{submitting ? "Processing..." : modalType === "in" ? "Confirm Add" : "Confirm Remove"}
-									</Button>
-								</Flex>
-							</Flex>
-						</form>
-					</Dialog.Content>
-				</Dialog.Root>
-			</Content>
+			{/* pagination */}
+			{!isLoading && transactions.length > 0 && <Pagination page={page} pages={pages} onPageChange={setPage} />}
 		</>
 	);
 }

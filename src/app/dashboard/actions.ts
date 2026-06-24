@@ -1,9 +1,25 @@
 "use server";
 
+import { cookies } from "next/headers";
+
 // lib
 import { request } from "@/lib/api";
+import { RequestCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
-export async function getWarehouseCount() {
+// types
+type UserRole = 1 | 2 | 3;
+
+// user
+async function getRole(): Promise<UserRole> {
+	const role: RequestCookie | undefined = (await cookies()).get("role");
+	if (!role || !role.value) return 3;
+
+	const parsed: number = parseInt(role.value, 10);
+	if ([1, 2, 3].includes(parsed)) return parsed as UserRole;
+	return 3;
+}
+
+async function getWarehouseCount() {
 	try {
 		// call the api
 		const response = await request("/warehouses", { protected: true });
@@ -12,7 +28,6 @@ export async function getWarehouseCount() {
 		const count = Array.isArray(data) ? data.length : 0;
 		return { success: true, count };
 	} catch (error: any) {
-		// Επιστρέφουμε πάντα count: 0 στο error για ασφάλεια
 		return {
 			error: error.message || "something wrong",
 			count: 0,
@@ -21,7 +36,7 @@ export async function getWarehouseCount() {
 	}
 }
 
-export async function getProductCount() {
+async function getProductCount() {
 	try {
 		// call the api
 		const response = await request("/products", { protected: true });
@@ -30,7 +45,6 @@ export async function getProductCount() {
 		const count = Array.isArray(data) ? data.length : 0;
 		return { success: true, count };
 	} catch (error: any) {
-		// Επιστρέφουμε πάντα count: 0 στο error για ασφάλεια
 		return {
 			error: error.message || "something wrong",
 			count: 0,
@@ -39,7 +53,7 @@ export async function getProductCount() {
 	}
 }
 
-export async function getTransactionCount() {
+async function getTransactionCount() {
 	try {
 		// call the api
 		const response = await request("/transactions", { protected: true });
@@ -48,7 +62,6 @@ export async function getTransactionCount() {
 		const count = Array.isArray(data) ? data.length : 0;
 		return { success: true, count };
 	} catch (error: any) {
-		// Επιστρέφουμε πάντα count: 0 στο error για ασφάλεια
 		return {
 			error: error.message || "something wrong",
 			count: 0,
@@ -56,3 +69,6 @@ export async function getTransactionCount() {
 		};
 	}
 }
+
+export type { UserRole };
+export { getRole };

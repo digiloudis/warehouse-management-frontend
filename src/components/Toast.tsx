@@ -3,19 +3,22 @@
 import { useEffect, useRef } from "react";
 
 // components
-import { Flex, Box, IconButton, Card } from "@radix-ui/themes";
-import { Cross1Icon } from "@radix-ui/react-icons";
-
-import Label from "./Label";
+import { Callout } from "@radix-ui/themes";
+import { CheckCircledIcon, ExclamationTriangleIcon, InfoCircledIcon } from "@radix-ui/react-icons";
 
 // types
 import { ToastMessage, ToastType } from "@/types/ToastMessage";
 
-// data
-const colors: Record<ToastType, string> = {
-	success: "var(--green-9)",
-	warning: "var(--amber-9)",
-	error: "var(--red-9)",
+const toastColors: Record<ToastType, "green" | "amber" | "red"> = {
+	success: "green",
+	warning: "amber",
+	error: "red",
+};
+
+const toastIcons: Record<ToastType, React.ReactElement> = {
+	success: <CheckCircledIcon width="16" height="16" />,
+	warning: <ExclamationTriangleIcon width="16" height="16" />,
+	error: <InfoCircledIcon width="16" height="16" />,
 };
 
 const Toast = ({ message, type = "warning", duration = 5000, onDismiss }: ToastMessage) => {
@@ -25,7 +28,6 @@ const Toast = ({ message, type = "warning", duration = 5000, onDismiss }: ToastM
 		onDismissRef.current = onDismiss;
 	}, [onDismiss]);
 
-	// auto dismiss toast
 	useEffect(() => {
 		if (!message) return;
 
@@ -39,34 +41,42 @@ const Toast = ({ message, type = "warning", duration = 5000, onDismiss }: ToastM
 	if (!message) return null;
 
 	return (
-		<Card
+		<Callout.Root
+			size="1"
+			variant="surface"
+			color={toastColors[type]}
+			onClick={onDismiss}
 			style={{
-				maxWidth: "400px",
 				position: "fixed",
-				zIndex: 100,
-				top: "5%",
-				left: "5%",
-				right: "5%",
-				padding: 0,
-				margin: "0 auto",
-				backgroundColor: colors[type],
-				pointerEvents: "auto",
-			}}
-		>
-			<Flex direction="row" align="center" justify="between" p="2" gap="4">
-				{/* message */}
-				<Box>
-					<Label size="2" weight="medium">
-						{message}
-					</Label>
-				</Box>
+				zIndex: 2147483647,
+				top: "80px",
+				left: "50%",
+				transform: "translateX(-50%)",
 
-				{/* button */}
-				<IconButton size="1" variant="ghost" className="cursor-pointer" onClick={onDismiss}>
-					<Cross1Icon width="12" height="12" />
-				</IconButton>
-			</Flex>
-		</Card>
+				// Layout & Styling
+				width: "calc(100% - 48px)",
+				maxWidth: "360px",
+				boxShadow: "var(--shadow-4)",
+				pointerEvents: "auto",
+				backgroundImage: "none",
+				display: "flex",
+				alignItems: "center",
+				gap: "12px",
+
+				// Interaction styles
+				cursor: "pointer", // 💡 Δείχνει στον χρήστη ότι είναι clickable
+				userSelect: "none",
+			}}
+			// 💡 Προσθήκη hover:opacity για ένα διακριτικό feedback κατά το hover
+			className="animate-in fade-in slide-in-from-top-4 duration-200 hover:opacity-90 transition-opacity"
+		>
+			<Callout.Icon>{toastIcons[type]}</Callout.Icon>
+
+			{/* 💡 Το κείμενο πλέον πιάνει όλο τον εναπομείναντα χώρο χωρίς δεσμεύσεις για κουμπιά */}
+			<Callout.Text className="min-w-0 flex-1" weight="medium">
+				{message}
+			</Callout.Text>
+		</Callout.Root>
 	);
 };
 

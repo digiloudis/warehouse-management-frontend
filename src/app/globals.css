@@ -1,8 +1,1 @@
 @import "tailwindcss";
-
-html,
-body {
-	--background: var(--gray-3);
-	--surface: var(--gray-2);
-	--elevated: var(--gray-1);
-}

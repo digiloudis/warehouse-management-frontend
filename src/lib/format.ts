@@ -1,14 +1,13 @@
 export function formatNumber(number: number): string {
-	// 0 - 999
-	if (number < 1000) {
-		return number.toString(); // < 0-999
-	}
+	if (number === 0) return "0";
 
-	// 1,000 - 999,999
-	if (number < 1000000) {
-		return (number / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-	}
+	const absoluteNumber: number = Math.abs(number);
+	const isNegative: boolean = number < 0;
 
-	// 1,000,000+
-	return (number / 1000000).toFixed(1).replace(/\.0$/, "") + "m";
+	if (absoluteNumber < 1000) return `${isNegative ? "-" : ""}${absoluteNumber}`;
+
+	const suffixes: Array<string> = ["", "K", "M", "B", "T"];
+	const tier: number = Math.min(Math.floor(Math.log10(absoluteNumber) / 3), suffixes.length - 1);
+
+	return `${isNegative ? "-" : ""}${(absoluteNumber / Math.pow(10, tier * 3)).toFixed(1).replace(/\.0$/, "")}${suffixes[tier]}`;
 }

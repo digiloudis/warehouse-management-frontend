@@ -6,12 +6,9 @@ import { useState } from "react";
 import { useToast } from "@/context/ToastContext";
 
 // components
-import { Flex, Box } from "@radix-ui/themes";
+import { Flex, Text, Button, TextField } from "@radix-ui/themes";
 
 import Body from "@/components/Body";
-import Label from "@/components/Label";
-import { Input } from "@/components/Input";
-import Button from "@/components/Button";
 
 // actions
 import { login } from "./actions";
@@ -53,40 +50,57 @@ export default function Page() {
 	return (
 		<Body centered>
 			{/* title */}
-			<Label size="7" weight="light">
+			<Text size="7" weight="light" className="select-none">
 				WarehouseApp
-			</Label>
+			</Text>
 
 			{/* form */}
-			<Box width="100%" maxWidth="400px">
-				<Flex asChild direction="column" align="stretch" gap="4" width="100%">
-					<form onSubmit={handleSubmit}>
-						{/* fields */}
-						<Flex direction="column" gap="2" width="100%">
-							{/* username field */}
-							<Flex direction="column" align="stretch" gap="1" width="100%">
-								<Label htmlFor="username" size="2" weight="bold">
-									Username
-								</Label>
-								<Input autoFocus name="username" id="username" type="text" required disabled={isLoading} />
-							</Flex>
-
-							{/* password field */}
-							<Flex direction="column" align="stretch" gap="1" width="100%">
-								<Label htmlFor="password" size="2" weight="bold">
-									Password
-								</Label>
-								<Input name="password" id="password" type="password" required disabled={isLoading} />
-							</Flex>
+			<Flex asChild width="100%" maxWidth="400px" direction="column" align="stretch" gap="4">
+				<form onSubmit={handleSubmit}>
+					{/* fields */}
+					<Flex direction="column" gap="2" width="100%">
+						{/* username field */}
+						<Flex direction="column" align="stretch" gap="1" width="100%">
+							<Text htmlFor="username" size="2" weight="bold" className="select-none">
+								Username
+							</Text>
+							<TextField.Root
+								autoFocus
+								required
+								name="username"
+								id="username"
+								type="text"
+								autoCapitalize="false"
+								autoCorrect="false"
+								spellCheck="false"
+								disabled={isLoading}
+							/>
 						</Flex>
 
-						{/* button */}
-						<Button type="submit" disabled={isLoading} loading={isLoading} className="w-full">
-							Sign in
-						</Button>
-					</form>
-				</Flex>
-			</Box>
+						{/* password field */}
+						<Flex direction="column" align="stretch" gap="1" width="100%">
+							<Text htmlFor="password" size="2" weight="bold" className="select-none">
+								Password
+							</Text>
+							<TextField.Root
+								required
+								name="password"
+								id="password"
+								type="password"
+								autoCapitalize="false"
+								autoCorrect="false"
+								spellCheck="false"
+								disabled={isLoading}
+							/>
+						</Flex>
+					</Flex>
+
+					{/* button */}
+					<Button size="3" type="submit" disabled={isLoading} loading={isLoading} className="!cursor-pointer w-full">
+						Sign in
+					</Button>
+				</form>
+			</Flex>
 		</Body>
 	);
 }

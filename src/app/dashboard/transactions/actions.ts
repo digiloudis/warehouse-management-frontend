@@ -1,51 +1,70 @@
 "use server";
 
+// lib
 import { request } from "@/lib/api";
 
-interface TransactionPayload {
+// types
+import type { ActionResponse } from "@/types/ActionResponse";
+
+type Transaction = {
+	id: number;
 	productId: number;
+	warehouseId: number;
 	quantity: number;
-}
+	type: "in" | "out";
+	date: Date;
+};
 
-// 1. GET ALL TRANSACTIONS
-export async function getTransactions() {
+async function getTransactions(): Promise<ActionResponse<Array<Transaction>>> {
 	try {
-		const response = await request("/Transactions", { protected: true });
+		// call api
+		const response = await request("/transactions", { protected: true });
+		if (!response.ok) return { success: false, message: "Something went wrong. Please try again later." };
+
+		// read response
 		const data = await response.json();
-		return { success: true, data: Array.isArray(data) ? data : [] };
-	} catch (error: any) {
-		return { success: false, data: [], error: error.message };
+		if (!Array.isArray(data)) return { success: false, message: "We couldn't load your transaction history right now" };
+
+		return {
+			success: true,
+			data: data.map((item) => ({
+				id: item.id,
+				productId: item.productId,
+				warehouseId: item.warehouseId,
+				quantity: item.quantity,
+				type: item.type.toLowerCase(),
+				date: item.date,
+			})),
+		};
+	} catch (error) {
+		console.error(error);
+		return { success: false, message: "An unexpected error has occurred." };
 	}
 }
 
-// 2. GET PRODUCTS FOR THE DROPDOWN
-export async function getProductsForSelect() {
+async function createTransaction(transactions: Array<Transaction>): Promise<ActionResponse<void>> {
 	try {
-		const response = await request("/Products", { protected: true });
-		const data = await response.json();
-		return { success: true, data: Array.isArray(data) ? data : [] };
-	} catch (error: any) {
-		return { success: false, data: [] };
+		const requests = transactions.map((tx) =>
+			request(`/transactions/${tx.type}`, {
+				method: "POST",
+				protected: true,
+				body: {
+					warehouseId: tx.warehouseId,
+					productId: tx.productId,
+					quantity: tx.quantity,
+				},
+			}),
+		);
+
+		const responses = await Promise.all(requests);
+		if (responses.some((response) => !response.ok)) return { success: false, message: "Some transactions failed to process. Please check your inventory." };
+
+		return { success: true, data: null };
+	} catch (error) {
+		console.error(error);
+		return { success: false, message: "An unexpected error has occurred." };
 	}
 }
 
-// 3. POST /Transactions/in ή /Transactions/out
-export async function createTransaction(type: "in" | "out", payload: TransactionPayload) {
-	try {
-		// Προσκρούει στο /api/Transactions/in ή /api/Transactions/out ανάλογα με το type
-		const response = await request(`/Transactions/${type}`, {
-			method: "POST",
-			protected: true,
-			body: payload,
-		});
-
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(errorText || `Failed to record stock ${type}.`);
-		}
-
-		return { success: true };
-	} catch (error: any) {
-		return { success: false, error: error.message };
-	}
-}
+export type { Transaction };
+export { getTransactions, createTransaction };
