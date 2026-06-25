@@ -15,6 +15,8 @@ type Transaction = {
 	date: Date;
 };
 
+type TransactionRequest = { type: string } & Pick<Transaction, "warehouseId" | "productId" | "quantity">;
+
 async function getTransactions(): Promise<ActionResponse<Array<Transaction>>> {
 	try {
 		// call api
@@ -42,7 +44,7 @@ async function getTransactions(): Promise<ActionResponse<Array<Transaction>>> {
 	}
 }
 
-async function createTransaction(transactions: Array<Transaction>): Promise<ActionResponse<void>> {
+async function createTransaction(transactions: Array<TransactionRequest>): Promise<ActionResponse<void>> {
 	try {
 		const requests = transactions.map((transaction) =>
 			request(`/transactions/${transaction.type}`, {

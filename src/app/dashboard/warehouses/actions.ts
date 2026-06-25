@@ -12,7 +12,7 @@ type Warehouse = {
 	location: string;
 };
 
-type InventoryItem = {
+type Inventory = {
 	inventoryId: number;
 	productId: number;
 	productName: string;
@@ -48,18 +48,18 @@ async function getWarehouses(): Promise<ActionResponse<Array<Warehouse>>> {
 async function getWarehouse(id: number): Promise<ActionResponse<Warehouse>> {
 	try {
 		// call api
-		const response = await request(`/warehouses/${id}`, { protected: true });
-		if (!response.ok) return { success: false, message: "Something went wrong. Please try again later." };
+		const warehousesResponse = await getWarehouses();
+		if (!warehousesResponse.success || !warehousesResponse.data) return { success: false, message: "Something went wrong. Please try again later." };
 
 		// read response
-		const data = await response.json();
-		if (!data || typeof data !== "object" || !("warehouseId" in data) || !("name" in data) || !("location" in data))
+		const data = warehousesResponse.data.find((item) => item.id === id);
+		if (!data || typeof data !== "object" || !("id" in data) || !("name" in data) || !("location" in data))
 			return { success: false, message: "Failed to load warehouse details." };
 
 		return {
 			success: true,
 			data: {
-				id: data.warehouseId,
+				id: data.id,
 				name: data.name,
 				location: data.location,
 			},
@@ -96,7 +96,7 @@ async function createWarehouse(name: string, location: string): Promise<ActionRe
 	}
 }
 
-async function getWarehouseInventory(warehouseId: number): Promise<ActionResponse<Array<InventoryItem>>> {
+async function getWarehouseInventory(warehouseId: number): Promise<ActionResponse<Array<Inventory>>> {
 	try {
 		// call api
 		const response = await request(`/inventory/${warehouseId}`, { protected: true });
@@ -123,5 +123,5 @@ async function getWarehouseInventory(warehouseId: number): Promise<ActionRespons
 	}
 }
 
-export type { Warehouse, InventoryItem };
+export type { Warehouse, Inventory };
 export { getWarehouses, getWarehouse, createWarehouse, getWarehouseInventory };

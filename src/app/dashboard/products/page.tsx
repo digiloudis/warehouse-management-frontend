@@ -60,7 +60,7 @@ export default function Page() {
 		let isMounted: boolean = true;
 		setIsLoading(true);
 
-		Promise.all([getRole(), getProducts()])
+		Promise.all([getRole(), getProducts(false)])
 			.then(([role, productsResponse]) => {
 				if (!isMounted) return;
 
@@ -232,7 +232,11 @@ export default function Page() {
 			</Flex>
 
 			{/* pagination */}
-			{!isLoading && products.length > 0 && <Pagination page={page} pages={pages} onPageChange={setPage} />}
+			{!isLoading && products.length > 0 && (
+				<Flex width="100%" align="center" justify="center">
+					<Pagination page={page} pages={pages} onPageChange={setPage} />
+				</Flex>
+			)}
 		</>
 	);
 }

@@ -105,26 +105,36 @@ async function createProduct(name: string, barcode: string, price: number): Prom
 	}
 }
 
-async function updateProduct(id: number, body: { name: string; barcode: string; price: number }): Promise<ActionResponse<Product>> {
+async function updateProduct(id: number, name: string, barcode: string, price: number): Promise<ActionResponse<Product>> {
 	try {
 		// call api & check status
-		const response = await request(`/products/${id}`, { method: "PUT", protected: true, body });
-		if (!response.ok) return { success: false, message: "Something went wrong. Please try again later." };
+		const response = await request(`/products/${id}`, { method: "PUT", protected: true, body: { productId: id, name, barcode, price } });
+
+		if (!response.ok) {
+			try {
+				const errorData = await response.json();
+				return { success: false, message: errorData.message || `Server returned status ${response.status}` };
+			} catch {
+				return { success: false, message: `Request failed with status ${response.status}.` };
+			}
+		}
 
 		// read response body
-		const data = await response.json();
-		if (!data || typeof data !== "object") {
-			return { success: false, message: "Product data is corrupted." };
+		let data;
+		try {
+			data = await response.json();
+		} catch {
+			data = {};
 		}
 
 		return {
 			success: true,
 			data: {
-				id: data.productId,
-				barcode: data.barcode,
-				name: data.name,
-				price: data.price,
-				isArchived: data.isArchived,
+				id: data && typeof data === "object" && "productId" in data ? data.productId : id,
+				name: data && typeof data === "object" && "name" in data ? data.name : name,
+				barcode: data && typeof data === "object" && "barcode" in data ? data.barcode : barcode,
+				price: data && typeof data === "object" && "price" in data ? data.price : price,
+				isArchived: data && typeof data === "object" && "isArchived" in data ? data.isArchived : false,
 			},
 		};
 	} catch (error) {

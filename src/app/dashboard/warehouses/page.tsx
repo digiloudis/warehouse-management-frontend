@@ -216,7 +216,11 @@ export default function Page() {
 			</Flex>
 
 			{/* pagination */}
-			{!isLoading && warehouses.length > 0 && <Pagination page={page} pages={pages} onPageChange={setPage} />}
+			{!isLoading && warehouses.length > 0 && (
+				<Flex width="100%" align="center" justify="center">
+					<Pagination page={page} pages={pages} onPageChange={setPage} />
+				</Flex>
+			)}
 		</>
 	);
 }

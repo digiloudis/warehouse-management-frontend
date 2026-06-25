@@ -8,12 +8,12 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 
 // components
-import { Card, Avatar, Badge, DropdownMenu, Flex, IconButton, Text, TextField, Tooltip } from "@radix-ui/themes";
-import { CopyIcon, DotsVerticalIcon, ChevronRightIcon, MinusIcon, PlusIcon } from "@radix-ui/react-icons";
+import { Card, Avatar, Badge, DropdownMenu, Flex, IconButton, Text, Tooltip } from "@radix-ui/themes";
+import { CopyIcon, DotsVerticalIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 
 type Color = "amber" | "green" | "red";
 
-export type ListCardOption =
+export type Option =
 	| {
 			type: "item";
 			icon?: React.ReactElement;
@@ -27,6 +27,7 @@ export type ListCardOption =
 
 type ListCardProps = {
 	link?: string;
+	onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 	icon: React.ReactElement;
 	iconColor?: Color;
 	title: string;
@@ -35,17 +36,14 @@ type ListCardProps = {
 	descriptionLink?: string;
 	badge?: string;
 	badgeColor?: Color;
-	badgeTooltip?: string; // Προσθήκη του νέου prop
+	badgeTooltip?: string;
 	date?: Date;
-	options?: Array<ListCardOption>;
-	counterValue?: number;
-	onCounterChange?: (value: number) => void;
-	maxCounterValue?: number;
-	isCounterLimitReached?: boolean;
+	options?: Array<Option>;
 };
 
 const ListCard = ({
 	link,
+	onClick,
 	icon,
 	iconColor = "amber",
 	title,
@@ -57,10 +55,6 @@ const ListCard = ({
 	badgeTooltip,
 	date,
 	options = [],
-	counterValue,
-	onCounterChange,
-	maxCounterValue = 1000000,
-	isCounterLimitReached = false,
 }: ListCardProps) => {
 	const router = useRouter();
 	const toast = useToast();
@@ -79,62 +73,32 @@ const ListCard = ({
 
 	const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
 		const target = event.target as HTMLElement;
-
-		if (
-			target.closest("button") ||
-			target.closest("a") ||
-			target.closest("[role='menuitem']") ||
-			target.closest("[data-radix-popper-content-wrapper]") ||
-			target.closest("input")
-		) {
+		if (target.closest("button") || target.closest("a") || target.closest("[role='menuitem']") || target.closest("[data-radix-popper-content-wrapper]"))
 			return;
-		}
 
-		if (link) {
-			router.push(link);
-		}
+		if (link) router.push(link);
+		else if (onClick) onClick(event);
 	};
 
-	const renderBadge = () => {
-		if (!badge) return null;
-
-		const badgeComponent = (
-			<Badge size="3" color={badgeColor} className="select-none whitespace-nowrap">
-				{badge}
-			</Badge>
-		);
-
-		if (badgeTooltip) {
-			return <Tooltip content={badgeTooltip}>{badgeComponent}</Tooltip>;
-		}
-
-		return badgeComponent;
-	};
-
-	const showCounter = counterValue !== undefined && onCounterChange !== undefined;
-	const isChosen = showCounter && counterValue > 0;
+	const isInteractive = !!link || !!onClick;
 
 	return (
-		<Card
-			size="1"
-			className={`${link ? "!cursor-pointer" : ""} transition-colors ${isChosen ? "bg-[var(--accent-2)] border-[var(--accent-6)]" : ""}`}
-			onClick={handleCardClick}
-		>
-			<Flex width="100%" align="center" gap="2">
+		<Card size="1" className={`${isInteractive ? "!cursor-pointer" : ""} w-full min-w-0`} onClick={handleCardClick}>
+			<Flex width="100%" align="center" gap="2" className="min-w-0">
 				{/* details */}
-				<Avatar size="3" variant="soft" color={iconColor} fallback={icon} />
+				<Avatar size="3" variant="soft" color={iconColor} fallback={icon} className="shrink-0" />
 
 				<Flex direction="column" align="start" className="min-w-0 flex-1">
 					{/* title */}
 					{titleLink ? (
-						<Flex width="fit-content" align="center" gap="2">
+						<Flex width="fit-content" align="center" gap="2" className="min-w-0 max-w-full">
 							<Tooltip content={title}>
 								<Text weight="bold" className="select-none truncate">
 									{title}
 								</Text>
 							</Tooltip>
 							<Tooltip content="View details">
-								<IconButton asChild type="button" size="1" variant="ghost" color="gray" className="!cursor-pointer">
+								<IconButton asChild type="button" size="1" variant="ghost" color="gray" className="!cursor-pointer shrink-0">
 									<Link href={titleLink} onClick={(event) => event.stopPropagation()}>
 										<ChevronRightIcon width="16" height="16" />
 									</Link>
@@ -142,7 +106,7 @@ const ListCard = ({
 							</Tooltip>
 						</Flex>
 					) : (
-						<Flex width="fit-content" align="center" gap="2">
+						<Flex width="fit-content" align="center" gap="2" className="min-w-0 max-w-full">
 							<Tooltip content={title}>
 								<Text weight="bold" className="select-none truncate">
 									{title}
@@ -154,7 +118,7 @@ const ListCard = ({
 									size="1"
 									variant="ghost"
 									color="gray"
-									className="!cursor-pointer"
+									className="!cursor-pointer shrink-0"
 									onClick={(event) => handleCopy(event, title)}
 								>
 									<CopyIcon width="14" height="14" className="pointer-events-none" />
@@ -165,14 +129,14 @@ const ListCard = ({
 
 					{/* description */}
 					{descriptionLink ? (
-						<Flex width="fit-content" align="center" gap="2">
+						<Flex width="fit-content" align="center" gap="2" className="min-w-0 max-w-full">
 							<Tooltip content={description}>
 								<Text size="2" className="select-none text-[var(--gray-11)] truncate">
 									{description}
 								</Text>
 							</Tooltip>
 							<Tooltip content="View details">
-								<IconButton asChild type="button" size="1" variant="ghost" color="gray" className="!cursor-pointer">
+								<IconButton asChild type="button" size="1" variant="ghost" color="gray" className="!cursor-pointer shrink-0">
 									<Link href={descriptionLink} onClick={(event) => event.stopPropagation()}>
 										<ChevronRightIcon width="14" height="14" />
 									</Link>
@@ -180,7 +144,7 @@ const ListCard = ({
 							</Tooltip>
 						</Flex>
 					) : (
-						<Flex width="fit-content" align="center" gap="2">
+						<Flex width="fit-content" align="center" gap="2" className="min-w-0 max-w-full">
 							<Tooltip content={description}>
 								<Text size="2" className="select-none text-[var(--gray-11)] truncate">
 									{description}
@@ -192,7 +156,7 @@ const ListCard = ({
 									size="1"
 									variant="ghost"
 									color="gray"
-									className="!cursor-pointer"
+									className="!cursor-pointer shrink-0"
 									onClick={(event) => handleCopy(event, description)}
 								>
 									<CopyIcon width="12" height="12" className="pointer-events-none" />
@@ -202,65 +166,21 @@ const ListCard = ({
 					)}
 				</Flex>
 
-				{/* badge & actions */}
+				{/* badge & options */}
 				<Flex align="center" className="ml-auto shrink-0" gap="2">
-					{/* counter */}
-					{showCounter && (
-						<Flex align="center" gap="2" mx="2">
-							<IconButton
-								size="1"
-								variant="ghost"
-								color="gray"
-								className="!cursor-pointer"
-								disabled={counterValue === 0}
-								onClick={(e) => {
-									e.stopPropagation();
-									onCounterChange(counterValue - 1);
-								}}
-							>
-								<MinusIcon width="12" height="12" />
-							</IconButton>
-
-							<TextField.Root
-								size="1"
-								color="gray"
-								variant="soft"
-								type="text"
-								inputMode="numeric"
-								pattern="[0-9]*"
-								value={counterValue}
-								onClick={(e) => e.stopPropagation()}
-								onChange={(e) => {
-									const val = e.target.value.replace(/\D/g, "");
-									const parsedVal = parseInt(val) || 0;
-
-									if (parsedVal > maxCounterValue) {
-										onCounterChange(maxCounterValue);
-									} else {
-										onCounterChange(parsedVal);
-									}
-								}}
-								className={`text-center !grow-0 shrink-0 min-w-[36px] max-w-[90px] w-[calc(${counterValue.toString().length}ch+16px)]`}
-							/>
-
-							<IconButton
-								size="1"
-								variant="ghost"
-								color="gray"
-								className="!cursor-pointer"
-								disabled={(!isChosen && isCounterLimitReached) || counterValue >= maxCounterValue}
-								onClick={(e) => {
-									e.stopPropagation();
-									onCounterChange(counterValue + 1);
-								}}
-							>
-								<PlusIcon width="12" height="12" />
-							</IconButton>
-						</Flex>
-					)}
-
-					<Flex direction="column" align="end" gap="1" className="min-w-0 ">
-						{renderBadge()}
+					<Flex direction="column" align="end" gap="1" className="min-w-0 shrink-0">
+						{badge &&
+							(badgeTooltip ? (
+								<Tooltip content={badgeTooltip}>
+									<Badge size="3" color={badgeColor} className="select-none whitespace-nowrap">
+										{badge}
+									</Badge>
+								</Tooltip>
+							) : (
+								<Badge size="3" color={badgeColor} className="select-none whitespace-nowrap">
+									{badge}
+								</Badge>
+							))}
 
 						{date && (
 							<Tooltip content={new Date(date).toLocaleString("en-UK")}>
@@ -284,7 +204,7 @@ const ListCard = ({
 								<IconButton
 									variant="ghost"
 									color="gray"
-									className="!cursor-pointer"
+									className="!cursor-pointer shrink-0"
 									onPointerDown={(event) => event.stopPropagation()}
 									onClick={(event) => event.stopPropagation()}
 								>

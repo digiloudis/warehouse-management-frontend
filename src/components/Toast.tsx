@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 // components
 import { Callout } from "@radix-ui/themes";
@@ -43,36 +43,12 @@ const Toast = ({ message, type = "warning", duration = 5000, onDismiss }: ToastM
 	return (
 		<Callout.Root
 			size="1"
-			variant="surface"
+			variant="soft"
 			color={toastColors[type]}
 			onClick={onDismiss}
-			style={{
-				position: "fixed",
-				zIndex: 2147483647,
-				top: "80px",
-				left: "50%",
-				transform: "translateX(-50%)",
-
-				// Layout & Styling
-				width: "calc(100% - 48px)",
-				maxWidth: "360px",
-				boxShadow: "var(--shadow-4)",
-				pointerEvents: "auto",
-				backgroundImage: "none",
-				display: "flex",
-				alignItems: "center",
-				gap: "12px",
-
-				// Interaction styles
-				cursor: "pointer", // 💡 Δείχνει στον χρήστη ότι είναι clickable
-				userSelect: "none",
-			}}
-			// 💡 Προσθήκη hover:opacity για ένα διακριτικό feedback κατά το hover
-			className="animate-in fade-in slide-in-from-top-4 duration-200 hover:opacity-90 transition-opacity"
+			className="select-none fixed z-100 top-[10%] left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-[400px]"
 		>
 			<Callout.Icon>{toastIcons[type]}</Callout.Icon>
-
-			{/* 💡 Το κείμενο πλέον πιάνει όλο τον εναπομείναντα χώρο χωρίς δεσμεύσεις για κουμπιά */}
 			<Callout.Text className="min-w-0 flex-1" weight="medium">
 				{message}
 			</Callout.Text>

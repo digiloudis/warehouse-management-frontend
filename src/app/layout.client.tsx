@@ -70,7 +70,7 @@ function Initiator({ children }: InitiatorProps) {
 					retryTimeout = setTimeout(checkConnection, 3000);
 				}
 			} catch (error) {
-				console.error("Connection failed, retrying...", error);
+				console.error(error);
 				retryTimeout = setTimeout(checkConnection, 3000);
 			}
 		};

@@ -241,7 +241,6 @@ export default function Page() {
 							const warehouse: Warehouse | undefined = warehouses.find((warehouse: Warehouse) => warehouse.id === transaction.warehouseId);
 
 							const isInbound: boolean = transaction.type === "in";
-							const formattedQuantity = `${isInbound ? "+" : "-"}${formatNumber(transaction.quantity)}`;
 
 							return (
 								<ListCard
@@ -252,7 +251,7 @@ export default function Page() {
 									titleLink={product ? `/dashboard/products/${product.id}` : undefined}
 									description={warehouse?.name ?? "Unknown warehouse"}
 									descriptionLink={warehouse ? `/dashboard/warehouses/${warehouse.id}` : undefined}
-									badge={formattedQuantity}
+									badge={`${isInbound ? "+" : "-"}${formatNumber(transaction.quantity)}`}
 									badgeColor={isInbound ? "green" : "red"}
 									badgeTooltip={transaction.quantity > 999 ? transaction.quantity.toLocaleString() : undefined}
 									date={transaction.date}
@@ -264,7 +263,11 @@ export default function Page() {
 			</Flex>
 
 			{/* pagination */}
-			{!isLoading && transactions.length > 0 && <Pagination page={page} pages={pages} onPageChange={setPage} />}
+			{!isLoading && transactions.length > 0 && (
+				<Flex width="100%" align="center" justify="center">
+					<Pagination page={page} pages={pages} onPageChange={setPage} />
+				</Flex>
+			)}
 		</>
 	);
 }

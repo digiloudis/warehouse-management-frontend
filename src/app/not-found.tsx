@@ -19,17 +19,17 @@ export default function Page() {
 			</Badge>
 
 			{/* message */}
-			<Flex direction="column" gap="2" align="center" className="items-center content-center text-center">
-				<Text size="8" weight="bold" className="select-none">
+			<Flex direction="column" gap="2" align="center" className="items-center content-center text-center select-none">
+				<Text size="6" weight="bold">
 					Page not found
 				</Text>
-				<Text size="3" color="gray" className="select-none">
+				<Text color="gray">
 					Sorry, we couldn't find the page you're looking for. It might have been moved, deleted, or never existed in the first place.
 				</Text>
 			</Flex>
 
 			{/* back button */}
-			<Button variant="soft" color="gray" size="2" onClick={() => router.back()}>
+			<Button variant="soft" color="gray" className="!cursor-pointer" onClick={() => router.back()}>
 				<Flex align="center" gap="2">
 					<ArrowLeftIcon width="16" height="16" />
 					Go back

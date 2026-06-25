@@ -28,8 +28,11 @@ type HeaderProps = {
 const Header = ({ title, description, titleCopy, descriptionCopy, buttons = [] }: HeaderProps) => {
 	const toast = useToast();
 
-	const handleCopy = async (text: string) => {
+	const handleCopy = async (event: React.MouseEvent, text: string) => {
 		try {
+			event.preventDefault();
+			event.stopPropagation();
+
 			await navigator.clipboard.writeText(text);
 			toast.show("success", `${text} copied to clipboard.`);
 		} catch (error) {
@@ -56,7 +59,14 @@ const Header = ({ title, description, titleCopy, descriptionCopy, buttons = [] }
 						{title}
 					</Text>
 					{titleCopy && (
-						<IconButton size="1" variant="ghost" color="gray" className="!cursor-pointer" onClick={() => handleCopy(title)}>
+						<IconButton
+							type="button"
+							size="1"
+							variant="ghost"
+							color="gray"
+							className="!cursor-pointer"
+							onClick={(event) => handleCopy(event, title)}
+						>
 							<CopyIcon width="14" height="14" />
 						</IconButton>
 					)}
@@ -65,7 +75,14 @@ const Header = ({ title, description, titleCopy, descriptionCopy, buttons = [] }
 				<Flex align="center" gap="2">
 					<Text color="gray">{description}</Text>
 					{descriptionCopy && (
-						<IconButton size="1" variant="ghost" color="gray" className="!cursor-pointer" onClick={() => handleCopy(description)}>
+						<IconButton
+							type="button"
+							size="1"
+							variant="ghost"
+							color="gray"
+							className="!cursor-pointer"
+							onClick={(event) => handleCopy(event, description)}
+						>
 							<CopyIcon width="14" height="14" />
 						</IconButton>
 					)}
