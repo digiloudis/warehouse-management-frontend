@@ -9,8 +9,8 @@ export function middleware(request: NextRequest) {
 	if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) return NextResponse.next();
 
 	const authenticationResponse = authenticate(request);
-	if (authenticationResponse.status !== 200) return authenticationResponse;
 
+	if (authenticationResponse.headers.get("x-middleware-next") !== "1") return authenticationResponse;
 	return authorize(request);
 }
 
